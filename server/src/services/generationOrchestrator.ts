@@ -492,6 +492,5 @@ export const generationOrchestrator = {
   },
 };
 
-// TODO: Add L3 compression pipeline
 // TODO: Wire L4 layout pipeline
 // TODO: Font size re-evaluation before L6
