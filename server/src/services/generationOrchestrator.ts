@@ -492,7 +492,6 @@ export const generationOrchestrator = {
   },
 };
 
-// TODO: Integrate L2 parallel chunk generation
 // TODO: Add L3 compression pipeline
 // TODO: Wire L4 layout pipeline
 // TODO: Font size re-evaluation before L6
