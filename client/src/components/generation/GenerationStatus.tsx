@@ -204,5 +204,3 @@ export const GenerationStatus: React.FC = () => {
     </div>
   );
 };
-
-// TODO: compression status display
