@@ -4,6 +4,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { CourseListPage } from './pages/CourseListPage';
+import { EditorPage } from './pages/EditorPage';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { ApiKeyModal } from './components/auth/ApiKeyModal';
 import { useAuthStore } from './stores/authStore';
@@ -43,7 +44,7 @@ function App() {
           path="/courses/:id/editor"
           element={
             <ProtectedRoute>
-              <div className="p-8"><h1 className="text-2xl font-bold">Editor</h1><p className="text-gray-500 mt-2">Editor coming soon...</p></div>
+              <EditorPage />
             </ProtectedRoute>
           }
         />
