@@ -168,5 +168,3 @@ export async function initTreeCanvasSync() {
     }
   );
 }
-
-// TODO: tree -> canvas code-driven sync
