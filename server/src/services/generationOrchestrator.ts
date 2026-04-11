@@ -492,5 +492,4 @@ export const generationOrchestrator = {
   },
 };
 
-// TODO: Wire L4 layout pipeline
 // TODO: Font size re-evaluation before L6
