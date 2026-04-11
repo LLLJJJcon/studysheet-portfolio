@@ -131,5 +131,3 @@ function insertChild(tree: TreeNodeType, parentId: string, node: TreeNodeType): 
     children: tree.children.map((child) => insertChild(child, parentId, node)),
   };
 }
-
-// TODO: inline text editing on tree nodes

@@ -189,5 +189,3 @@ function updateNodeImportance(tree: TreeNodeType, nodeId: string, importance: Im
     children: tree.children.map((child) => updateNodeImportance(child, nodeId, importance)),
   };
 }
-
-// TODO: inline text editing
