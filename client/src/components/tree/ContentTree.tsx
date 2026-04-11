@@ -132,4 +132,4 @@ function insertChild(tree: TreeNodeType, parentId: string, node: TreeNodeType): 
   };
 }
 
-// TODO: bidirectional highlight linking
+// TODO: inline text editing on tree nodes

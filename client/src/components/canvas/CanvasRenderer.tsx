@@ -445,5 +445,3 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
     </>
   );
 };
-
-// TODO: bidirectional highlight linking with tree
