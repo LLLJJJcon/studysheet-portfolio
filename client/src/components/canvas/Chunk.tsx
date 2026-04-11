@@ -238,5 +238,3 @@ export const ChunkComponent: React.FC<ChunkProps> = ({
     </div>
   );
 };
-
-// TODO: chunk deletion shortcut (Delete key)
