@@ -266,5 +266,3 @@ export const generationApi = {
     handlers.onDone?.();
   },
 };
-
-// TODO: Add Cmd+K integration
