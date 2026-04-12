@@ -164,5 +164,3 @@ export const layoutService = {
     );
   },
 };
-
-// TODO: Add L6 layout optimization post-processing
