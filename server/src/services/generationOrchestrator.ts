@@ -491,5 +491,3 @@ export const generationOrchestrator = {
     }
   },
 };
-
-// TODO: Font size re-evaluation before L6
