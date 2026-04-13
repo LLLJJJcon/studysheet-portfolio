@@ -3,6 +3,7 @@ import authRoutes from './authRoutes';
 import courseRoutes from './courseRoutes';
 import generationRoutes from './generationRoutes';
 import versionRoutes from './versionRoutes';
+import exportRoutes from './exportRoutes';
 
 const router = Router();
 
@@ -10,5 +11,6 @@ router.use('/auth', authRoutes);
 router.use('/courses', courseRoutes);
 router.use('/courses', generationRoutes);
 router.use('/courses', versionRoutes);
+router.use('/courses', exportRoutes);
 
 export default router;

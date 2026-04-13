@@ -1,0 +1,25 @@
+/* Print styles for cheatsheet export */
+
+@page {
+  margin: 0;
+}
+
+@media print {
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    page-break-after: always;
+  }
+
+  .page:last-child {
+    page-break-after: auto;
+  }
+
+  /* Hide UI elements when printing */
+  .no-print {
+    display: none !important;
+  }
+}
