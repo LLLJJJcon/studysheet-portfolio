@@ -6,8 +6,13 @@ import { SettingsPage } from './pages/SettingsPage';
 import { CourseListPage } from './pages/CourseListPage';
 import { EditorPage } from './pages/EditorPage';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
+import { ErrorBoundary, ToastContainer } from './components/common/ErrorBoundary';
 import { ApiKeyModal } from './components/auth/ApiKeyModal';
 import { useAuthStore } from './stores/authStore';
+import { initTreeCanvasSync } from './stores/treeStore';
+
+// Initialize cross-store sync (tree ↔ canvas highlighting)
+initTreeCanvasSync();
 
 function App() {
   const { token, fetchUser, setToken } = useAuthStore();
@@ -19,8 +24,10 @@ function App() {
   }, [token, fetchUser]);
 
   return (
-    <BrowserRouter>
-      <ApiKeyModal />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ApiKeyModal />
+        <ToastContainer />
       <Routes>
         <Route path="/login" element={<LoginPage onLogin={setToken} />} />
         <Route path="/register" element={<RegisterPage onRegister={setToken} />} />
@@ -51,6 +58,7 @@ function App() {
         <Route path="/" element={<Navigate to={token ? '/courses' : '/login'} replace />} />
       </Routes>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
