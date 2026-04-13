@@ -110,5 +110,3 @@ export class OpenAIProvider implements LLMProvider {
     yield { type: 'done' };
   }
 }
-
-// TODO: Add retry logic and error handling

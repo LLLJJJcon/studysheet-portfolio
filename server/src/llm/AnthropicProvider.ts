@@ -116,5 +116,3 @@ export class AnthropicProvider implements LLMProvider {
     yield { type: 'done' };
   }
 }
-
-// TODO: Add retry logic and error handling
