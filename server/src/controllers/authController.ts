@@ -10,6 +10,7 @@ function sanitizeUser(user: Record<string, unknown>) {
     obj.apiKeys = {
       openai: obj.apiKeys.openai ? '••••••••' : null,
       anthropic: obj.apiKeys.anthropic ? '••••••••' : null,
+      gemini: obj.apiKeys.gemini ? '••••••••' : null,
     };
   }
   return obj;
@@ -71,8 +72,8 @@ export const authController = {
 
   async updateApiKeys(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { openai, anthropic } = req.body;
-      const user = await authService.updateApiKeys(req.user!.userId, { openai, anthropic });
+      const { openai, anthropic, gemini } = req.body;
+      const user = await authService.updateApiKeys(req.user!.userId, { openai, anthropic, gemini });
       if (!user) {
         res.status(404).json({ error: 'User not found' });
         return;
@@ -85,12 +86,12 @@ export const authController = {
 
   async updateSettings(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { preferredProvider } = req.body;
-      if (preferredProvider && !['openai', 'anthropic'].includes(preferredProvider)) {
+      const { preferredProvider, openaiBaseUrl, preferredModel } = req.body;
+      if (preferredProvider && !['openai', 'anthropic', 'gemini'].includes(preferredProvider)) {
         res.status(400).json({ error: 'Invalid provider' });
         return;
       }
-      const user = await authService.updateSettings(req.user!.userId, { preferredProvider });
+      const user = await authService.updateSettings(req.user!.userId, { preferredProvider, openaiBaseUrl, preferredModel });
       if (!user) {
         res.status(404).json({ error: 'User not found' });
         return;

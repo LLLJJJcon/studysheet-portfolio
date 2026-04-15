@@ -10,10 +10,10 @@ export const authApi = {
   getMe() {
     return api.get('/auth/me');
   },
-  updateApiKeys(apiKeys: { openai?: string | null; anthropic?: string | null }) {
+  updateApiKeys(apiKeys: { openai?: string | null; anthropic?: string | null; gemini?: string | null }) {
     return api.put('/auth/api-keys', apiKeys);
   },
-  updateSettings(settings: { preferredProvider?: string }) {
+  updateSettings(settings: { preferredProvider?: string; openaiBaseUrl?: string | null; preferredModel?: string | null }) {
     return api.put('/auth/settings', settings);
   },
 };

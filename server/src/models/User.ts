@@ -6,8 +6,11 @@ export interface IUser extends Document {
   apiKeys: {
     openai: string | null;
     anthropic: string | null;
+    gemini: string | null;
   };
-  preferredProvider: 'openai' | 'anthropic';
+  openaiBaseUrl: string | null;
+  preferredProvider: 'openai' | 'anthropic' | 'gemini';
+  preferredModel: string | null;
   createdAt: Date;
 }
 
@@ -26,10 +29,13 @@ const userSchema = new Schema<IUser>({
   apiKeys: {
     openai: { type: String, default: null },
     anthropic: { type: String, default: null },
+    gemini: { type: String, default: null },
   },
+  openaiBaseUrl: { type: String, default: null },
+  preferredModel: { type: String, default: null },
   preferredProvider: {
     type: String,
-    enum: ['openai', 'anthropic'],
+    enum: ['openai', 'anthropic', 'gemini'],
     default: 'openai',
   },
   createdAt: {

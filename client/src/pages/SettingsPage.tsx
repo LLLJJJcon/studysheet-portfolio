@@ -9,13 +9,18 @@ export function SettingsPage() {
 
   const [openaiKey, setOpenaiKey] = useState('');
   const [anthropicKey, setAnthropicKey] = useState('');
-  const [preferredProvider, setPreferredProvider] = useState<'openai' | 'anthropic'>('openai');
+  const [geminiKey, setGeminiKey] = useState('');
+  const [openaiBaseUrl, setOpenaiBaseUrl] = useState('');
+  const [preferredProvider, setPreferredProvider] = useState<'openai' | 'anthropic' | 'gemini'>('openai');
+  const [preferredModel, setPreferredModel] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     if (user) {
       setPreferredProvider(user.preferredProvider);
+      setOpenaiBaseUrl(user.openaiBaseUrl || '');
+      setPreferredModel(user.preferredModel || '');
     }
   }, [user]);
 
@@ -24,20 +29,26 @@ export function SettingsPage() {
     setSaving(true);
     setMessage('');
     try {
-      const update: { openai?: string | null; anthropic?: string | null } = {};
+      const update: { openai?: string | null; anthropic?: string | null; gemini?: string | null } = {};
       if (openaiKey) update.openai = openaiKey;
       if (anthropicKey) update.anthropic = anthropicKey;
+      if (geminiKey) update.gemini = geminiKey;
 
       if (Object.keys(update).length > 0) {
         await authApi.updateApiKeys(update);
       }
-      await authApi.updateSettings({ preferredProvider });
+      await authApi.updateSettings({
+        preferredProvider,
+        openaiBaseUrl: openaiBaseUrl || null,
+        preferredModel: preferredModel || null,
+      });
       await fetchUser();
-      setMessage('Settings saved successfully');
+      setMessage('设置保存成功');
       setOpenaiKey('');
       setAnthropicKey('');
+      setGeminiKey('');
     } catch {
-      setMessage('Failed to save settings');
+      setMessage('保存失败');
     } finally {
       setSaving(false);
     }
@@ -52,31 +63,31 @@ export function SettingsPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto py-8 px-4">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Settings</h1>
+          <h1 className="text-2xl font-bold">设置</h1>
           <button
             onClick={() => navigate('/courses')}
             className="text-blue-600 hover:underline text-sm"
           >
-            ← Back to Courses
+            ← 返回课程列表
           </button>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Account</h2>
-          <p className="text-gray-600 text-sm">Email: {user?.email}</p>
+          <h2 className="text-lg font-semibold mb-4">账户</h2>
+          <p className="text-gray-600 text-sm">邮箱: {user?.email}</p>
           <button
             onClick={handleLogout}
             className="mt-4 text-red-600 hover:underline text-sm"
           >
-            Log out
+            退出登录
           </button>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold mb-4">LLM API Keys</h2>
+          <h2 className="text-lg font-semibold mb-4">LLM API 密钥</h2>
 
           {message && (
-            <div className={`p-3 rounded-md text-sm mb-4 ${message.includes('success') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+            <div className={`p-3 rounded-md text-sm mb-4 ${message.includes('成功') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
               {message}
             </div>
           )}
@@ -84,47 +95,92 @@ export function SettingsPage() {
           <form onSubmit={handleSaveKeys} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                OpenAI API Key {user?.apiKeys.openai && <span className="text-green-600">(configured)</span>}
+                OpenAI API 密钥 {user?.apiKeys.openai && <span className="text-green-600">(已配置)</span>}
               </label>
               <input
                 type="password"
                 value={openaiKey}
                 onChange={(e) => setOpenaiKey(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter new key to update"
+                placeholder="输入新密钥以更新"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Anthropic API Key {user?.apiKeys.anthropic && <span className="text-green-600">(configured)</span>}
+                OpenAI Base URL
+                <span className="text-gray-400 font-normal ml-1">(可选，用于兼容 API)</span>
+              </label>
+              <input
+                type="text"
+                value={openaiBaseUrl}
+                onChange={(e) => setOpenaiBaseUrl(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="https://api.openai.com/v1 (default)"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                支持 OpenAI 兼容 API: MiniMax, GLM, Qwen, DeepSeek 等
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Anthropic API 密钥 {user?.apiKeys.anthropic && <span className="text-green-600">(已配置)</span>}
               </label>
               <input
                 type="password"
                 value={anthropicKey}
                 onChange={(e) => setAnthropicKey(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter new key to update"
+                placeholder="输入新密钥以更新"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Preferred Provider
+                Google Gemini API 密钥 {user?.apiKeys.gemini && <span className="text-green-600">(已配置)</span>}
+              </label>
+              <input
+                type="password"
+                value={geminiKey}
+                onChange={(e) => setGeminiKey(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="输入新密钥以更新"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                首选服务商
               </label>
               <select
                 value={preferredProvider}
-                onChange={(e) => setPreferredProvider(e.target.value as 'openai' | 'anthropic')}
+                onChange={(e) => setPreferredProvider(e.target.value as 'openai' | 'anthropic' | 'gemini')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="openai">OpenAI</option>
                 <option value="anthropic">Anthropic</option>
+                <option value="gemini">Google Gemini</option>
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                模型名称
+                <span className="text-gray-400 font-normal ml-1">(留空使用默认)</span>
+              </label>
+              <input
+                type="text"
+                value={preferredModel}
+                onChange={(e) => setPreferredModel(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder={preferredProvider === 'openai' ? 'gpt-4o' : preferredProvider === 'anthropic' ? 'claude-sonnet-4-20250514' : 'gemini-2.0-flash'}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                e.g. gpt-4o, claude-sonnet-4-20250514, gemini-2.0-flash, deepseek-chat, glm-4-flash
+              </p>
             </div>
             <button
               type="submit"
               disabled={saving}
               className="py-2 px-6 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
-              {saving ? 'Saving...' : 'Save Settings'}
+              {saving ? '保存中...' : '保存设置'}
             </button>
           </form>
         </div>

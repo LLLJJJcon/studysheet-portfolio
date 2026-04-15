@@ -50,7 +50,7 @@ export const authService = {
 
   async updateApiKeys(
     userId: string,
-    apiKeys: { openai?: string | null; anthropic?: string | null }
+    apiKeys: { openai?: string | null; anthropic?: string | null; gemini?: string | null }
   ): Promise<IUser | null> {
     const update: Record<string, string | null> = {};
 
@@ -60,15 +60,28 @@ export const authService = {
     if (apiKeys.anthropic !== undefined) {
       update['apiKeys.anthropic'] = apiKeys.anthropic ? encrypt(apiKeys.anthropic) : null;
     }
+    if (apiKeys.gemini !== undefined) {
+      update['apiKeys.gemini'] = apiKeys.gemini ? encrypt(apiKeys.gemini) : null;
+    }
 
     return User.findByIdAndUpdate(userId, { $set: update }, { new: true }).select('-passwordHash');
   },
 
   async updateSettings(
     userId: string,
-    settings: { preferredProvider?: 'openai' | 'anthropic' }
+    settings: { preferredProvider?: 'openai' | 'anthropic' | 'gemini'; openaiBaseUrl?: string | null; preferredModel?: string | null }
   ): Promise<IUser | null> {
-    return User.findByIdAndUpdate(userId, { $set: settings }, { new: true }).select('-passwordHash');
+    const update: Record<string, unknown> = {};
+    if (settings.preferredProvider !== undefined) {
+      update.preferredProvider = settings.preferredProvider;
+    }
+    if (settings.openaiBaseUrl !== undefined) {
+      update.openaiBaseUrl = settings.openaiBaseUrl || null;
+    }
+    if (settings.preferredModel !== undefined) {
+      update.preferredModel = settings.preferredModel || null;
+    }
+    return User.findByIdAndUpdate(userId, { $set: update }, { new: true }).select('-passwordHash');
   },
 
   getDecryptedApiKey(user: IUser, provider?: string): string | null {
