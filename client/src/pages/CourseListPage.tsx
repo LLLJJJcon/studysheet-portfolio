@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CourseList } from '../components/course/CourseList';
+import { CreateCourseModal } from '../components/course/CreateCourseModal';
 import { useAuthStore } from '../stores/authStore';
+import { Loading } from '../components/common/Loading';
 import api from '../services/api';
 import { Course } from '../types/course';
 
 export function CourseListPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
   const { logout } = useAuthStore();
   const navigate = useNavigate();
 
@@ -27,7 +30,7 @@ export function CourseListPage() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this course?')) return;
+    if (!confirm('确定删除此课程？删除后无法恢复。')) return;
     try {
       await api.delete(`/courses/${id}`);
       setCourses((prev) => prev.filter((c) => c._id !== id));
@@ -46,13 +49,13 @@ export function CourseListPage() {
               onClick={() => navigate('/settings')}
               className="text-sm text-gray-600 hover:text-gray-900"
             >
-              Settings
+              设置
             </button>
             <button
               onClick={() => { logout(); navigate('/login'); }}
               className="text-sm text-red-500 hover:text-red-700"
             >
-              Logout
+              退出登录
             </button>
           </div>
         </div>
@@ -60,17 +63,26 @@ export function CourseListPage() {
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">My Courses</h2>
+          <h2 className="text-2xl font-bold">我的课程</h2>
           <button
-            onClick={() => navigate('/courses/new')}
+            onClick={() => setShowCreate(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
-            + New Course
+            + 新建课程
           </button>
         </div>
 
+        <CreateCourseModal
+          show={showCreate}
+          onClose={() => setShowCreate(false)}
+          onCreated={(course) => {
+            setCourses((prev) => [course, ...prev]);
+            navigate(`/courses/${course._id}/editor`);
+          }}
+        />
+
         {loading ? (
-          <div className="text-center py-12 text-gray-400">Loading...</div>
+          <Loading message="加载中..." className="py-12" />
         ) : (
           <CourseList
             courses={courses}

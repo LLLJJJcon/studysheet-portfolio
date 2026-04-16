@@ -19,7 +19,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('两次密码不一致');
       return;
     }
 
@@ -31,7 +31,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       navigate('/courses');
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || 'Registration failed');
+      setError(error.response?.data?.error || '注册失败');
     } finally {
       setLoading(false);
     }
@@ -44,7 +44,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       )}
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-          Email
+          邮箱
         </label>
         <input
           id="email"
@@ -53,12 +53,12 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           onChange={(e) => setEmail(e.target.value)}
           required
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="your@email.com"
+          placeholder="你的邮箱地址"
         />
       </div>
       <div>
         <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-          Password
+          密码
         </label>
         <input
           id="password"
@@ -68,12 +68,12 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           required
           minLength={8}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="At least 8 characters"
+          placeholder="至少 8 个字符"
         />
       </div>
       <div>
         <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-          Confirm Password
+          确认密码
         </label>
         <input
           id="confirmPassword"
@@ -83,7 +83,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           required
           minLength={8}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Repeat your password"
+          placeholder="再次输入密码"
         />
       </div>
       <button
@@ -91,12 +91,12 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         disabled={loading}
         className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {loading ? 'Registering...' : 'Register'}
+        {loading ? '注册中...' : '注册'}
       </button>
       <p className="text-center text-sm text-gray-600">
-        Already have an account?{' '}
+        已有账户？{' '}
         <Link to="/login" className="text-blue-600 hover:underline">
-          Log in
+          登录
         </Link>
       </p>
     </form>

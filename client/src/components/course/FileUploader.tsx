@@ -14,7 +14,7 @@ export function FileUploader({ courseId, onUploadComplete }: FileUploaderProps) 
     if (files.length === 0) return;
 
     setUploading(true);
-    setProgress(`Uploading ${files.length} file(s)...`);
+    setProgress(`正在上传 ${files.length} 个文件...`);
 
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
@@ -35,10 +35,10 @@ export function FileUploader({ courseId, onUploadComplete }: FileUploaderProps) 
         throw new Error('Upload failed');
       }
 
-      setProgress('Upload complete!');
+      setProgress('上传成功！');
       onUploadComplete();
     } catch {
-      setProgress('Upload failed. Please try again.');
+      setProgress('上传失败，请重试');
     } finally {
       setUploading(false);
     }
@@ -66,10 +66,10 @@ export function FileUploader({ courseId, onUploadComplete }: FileUploaderProps) 
       onDrop={handleDrop}
     >
       <div className="text-gray-500">
-        <p className="text-lg mb-2">Drag & drop files here</p>
-        <p className="text-sm mb-4">or</p>
+        <p className="text-lg mb-2">拖拽文件到此处</p>
+        <p className="text-sm mb-4">或者</p>
         <label className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer">
-          Browse Files
+          浏览文件
           <input
             type="file"
             multiple
@@ -80,12 +80,12 @@ export function FileUploader({ courseId, onUploadComplete }: FileUploaderProps) 
           />
         </label>
         <p className="text-xs text-gray-400 mt-3">
-          Supports: PDF, Word, PPT, Images, Text
+          支持: PDF, Word, PPT, 图片, 文本
         </p>
       </div>
 
       {progress && (
-        <p className={`mt-4 text-sm ${uploading ? 'text-blue-600' : progress.includes('failed') ? 'text-red-600' : 'text-green-600'}`}>
+        <p className={`mt-4 text-sm ${uploading ? 'text-blue-600' : progress.includes('失败') ? 'text-red-600' : 'text-green-600'}`}>
           {progress}
         </p>
       )}

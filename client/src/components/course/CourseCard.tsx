@@ -7,10 +7,10 @@ interface CourseCardProps {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  created: 'Ready',
-  uploading: 'Uploading...',
-  generating: 'Generating...',
-  editing: 'Editing',
+  created: '待处理',
+  uploading: '上传中...',
+  generating: '生成中...',
+  editing: '编辑中',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -34,12 +34,12 @@ export function CourseCard({ course, onOpen, onDelete }: CourseCardProps) {
       </div>
 
       <div className="text-sm text-gray-500 space-y-1">
-        <p>{course.files.length} file{course.files.length !== 1 ? 's' : ''} uploaded</p>
+        <p>{course.files.length} 个文件</p>
         <p>
-          {course.pageConfig.size} · {course.pageConfig.pages} page{course.pageConfig.pages !== 1 ? 's' : ''}
+          {course.pageConfig.size} · {course.pageConfig.pages} 页
         </p>
         <p className="text-xs text-gray-400">
-          Updated {new Date(course.updatedAt).toLocaleDateString()}
+          更新于 {new Date(course.updatedAt).toLocaleDateString()}
         </p>
       </div>
 
@@ -51,7 +51,7 @@ export function CourseCard({ course, onOpen, onDelete }: CourseCardProps) {
           }}
           className="text-xs text-red-500 hover:text-red-700"
         >
-          Delete
+          删除
         </button>
       </div>
     </div>

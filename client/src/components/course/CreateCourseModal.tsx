@@ -20,7 +20,7 @@ export function CreateCourseModal({ show, onClose, onCreated }: CreateCourseModa
   const handleNameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError('Course name is required');
+      setError('请输入课程名称');
       return;
     }
     setError('');
@@ -41,7 +41,7 @@ export function CreateCourseModal({ show, onClose, onCreated }: CreateCourseModa
       setName('');
       onClose();
     } catch {
-      setError('Failed to create course');
+      setError('创建失败');
     } finally {
       setCreating(false);
     }
@@ -59,7 +59,7 @@ export function CreateCourseModal({ show, onClose, onCreated }: CreateCourseModa
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">
-            {step === 1 ? 'New Course' : 'Page Settings'}
+            {step === 1 ? '新建课程' : '页面设置'}
           </h2>
           <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 text-xl">
             ×
@@ -74,14 +74,14 @@ export function CreateCourseModal({ show, onClose, onCreated }: CreateCourseModa
           <form onSubmit={handleNameSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Course Name
+                课程名称
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g., Advanced Mathematics"
+                placeholder="例如：高等数学"
                 autoFocus
               />
             </div>
@@ -90,14 +90,14 @@ export function CreateCourseModal({ show, onClose, onCreated }: CreateCourseModa
                 type="submit"
                 className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
-                Next
+                下一步
               </button>
               <button
                 type="button"
                 onClick={handleClose}
                 className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
               >
-                Cancel
+                取消
               </button>
             </div>
           </form>
@@ -109,7 +109,7 @@ export function CreateCourseModal({ show, onClose, onCreated }: CreateCourseModa
         )}
 
         {creating && (
-          <div className="mt-4 text-center text-sm text-blue-600">Creating course...</div>
+          <div className="mt-4 text-center text-sm text-blue-600">创建中...</div>
         )}
       </div>
     </div>
