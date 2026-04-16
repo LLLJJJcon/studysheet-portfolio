@@ -15,6 +15,8 @@ export interface IPageConfig {
   height: number;
   pages: number;
   wordLimit: number;
+  columns?: number;
+  fontSize?: number;
 }
 
 export interface ICourse extends Document {
@@ -43,6 +45,8 @@ const pageConfigSchema = new Schema<IPageConfig>({
   height: { type: Number, required: true },
   pages: { type: Number, required: true, min: 1 },
   wordLimit: { type: Number, required: true },
+  columns: { type: Number, min: 1, max: 4 },
+  fontSize: { type: Number, min: 4, max: 14 },
 });
 
 const courseSchema = new Schema<ICourse>(

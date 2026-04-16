@@ -12,6 +12,8 @@ export interface PageConfig {
   height: number;
   pages: number;
   wordLimit: number;
+  columns?: number;
+  fontSize?: number;
 }
 
 export interface Course {

@@ -13,7 +13,7 @@ interface AuthState {
   setShowApiKeyModal: (show: boolean) => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set, _get) => ({
   token: localStorage.getItem('token'),
   user: null,
   loading: false,
@@ -36,7 +36,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ user, loading: false });
 
       // Show API key modal if no keys configured
-      if (!user.apiKeys.openai && !user.apiKeys.anthropic) {
+      if (!user.apiKeys.openai && !user.apiKeys.anthropic && !user.apiKeys.gemini) {
         set({ showApiKeyModal: true });
       }
     } catch {
