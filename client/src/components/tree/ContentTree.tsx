@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { TreeNode as TreeNodeType } from '../../types/tree';
 import { useTreeStore } from '../../stores/treeStore';
 import { useCanvasStore } from '../../stores/canvasStore';
@@ -16,10 +16,14 @@ interface PositionedNode {
   depth: number;
   x: number;
   y: number;
+  width: number;
+  height: number;
 }
 
-const NODE_WIDTH = 180;
-const NODE_HEIGHT = 52;
+const COLLAPSED_NODE_WIDTH = 180;
+const COLLAPSED_NODE_HEIGHT = 52;
+const EXPANDED_NODE_WIDTH = 320;
+const COLUMN_WIDTH = 240;
 const H_GAP = 96;
 const V_GAP = 26;
 const PADDING = 20;
@@ -30,6 +34,7 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
   const storeSetSelected = useTreeStore((s) => s.setSelectedNodeId);
   const highlightedNodeId = useTreeStore((s) => s.highlightedNodeId);
   const setTree = useTreeStore((s) => s.setTree);
+  const containers = useCanvasStore((s) => s.containers);
   const setSelectedChunkId = useCanvasStore((s) => s.setSelectedChunkId);
   const setSelectedContainerId = useCanvasStore((s) => s.setSelectedContainerId);
 
@@ -53,6 +58,27 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
 
   const [dragOverNodeId, setDragOverNodeId] = useState<string | null>(null);
   const [dragNodeId, setDragNodeId] = useState<string | null>(null);
+  const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(() => new Set());
+
+  const chunkTextByNodeId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const container of containers) {
+      for (const chunk of container.chunks) {
+        if (chunk.content) {
+          map.set(chunk.nodeId, chunk.content);
+        }
+      }
+    }
+    return map;
+  }, [containers]);
+
+  const getExpandedText = useCallback((node: TreeNodeType) => {
+    const chunkText = chunkTextByNodeId.get(node.nodeId);
+    if (chunkText && chunkText.trim().length > 0) {
+      return chunkText;
+    }
+    return node.name;
+  }, [chunkTextByNodeId]);
 
   const handleDragStart = useCallback((nodeId: string) => {
     setDragNodeId(nodeId);
@@ -60,6 +86,18 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
 
   const handleDragOver = useCallback((nodeId: string) => {
     setDragOverNodeId(nodeId);
+  }, []);
+
+  const toggleExpanded = useCallback((nodeId: string) => {
+    setExpandedNodeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
   }, []);
 
   const handleDragEnd = useCallback(() => {
@@ -89,7 +127,7 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
     setDragOverNodeId(null);
   }, [dragNodeId, dragOverNodeId, tree, setTree]);
 
-  const layout = tree ? computeTreeLayout(tree) : null;
+  const layout = tree ? computeTreeLayout(tree, expandedNodeIds, getExpandedText) : null;
   const positionById = layout ? new Map(layout.nodes.map((n) => [n.node.nodeId, n])) : new Map<string, PositionedNode>();
 
   if (loading) {
@@ -130,9 +168,9 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
               const to = positionById.get(edge.to);
               if (!from || !to) return null;
 
-              const startX = from.x + NODE_WIDTH / 2;
+              const startX = from.x + from.width / 2;
               const startY = from.y;
-              const endX = to.x - NODE_WIDTH / 2;
+              const endX = to.x - to.width / 2;
               const endY = to.y;
               const midX = (startX + endX) / 2;
 
@@ -149,10 +187,12 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
           </svg>
         )}
 
-        {layout?.nodes.map(({ node, depth, x, y }) => {
+        {layout?.nodes.map(({ node, depth, x, y, width, height }) => {
           const isSelected = selectedNodeId === node.nodeId;
           const isHighlighted = highlightedNodeId === node.nodeId;
           const isDragOver = dragOverNodeId === node.nodeId;
+          const isExpanded = expandedNodeIds.has(node.nodeId);
+          const displayText = isExpanded ? getExpandedText(node) : node.name;
 
           return (
             <div
@@ -163,10 +203,10 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
                 isDragOver ? 'bg-green-50 border-green-400' : ''
               }`}
               style={{
-                width: NODE_WIDTH,
-                minHeight: NODE_HEIGHT,
-                left: x - NODE_WIDTH / 2,
-                top: y - NODE_HEIGHT / 2,
+                width,
+                minHeight: height,
+                left: x - width / 2,
+                top: y - height / 2,
               }}
               onClick={() => handleSelectNode(node)}
               draggable={depth > 0}
@@ -185,12 +225,33 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
                 handleDragEnd();
               }}
             >
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-medium text-gray-800 truncate flex-1" title={node.name}>
-                  {node.name}
-                </span>
-                {node.importance && <ImportancePill importance={node.importance} />}
-                <TreeNodeActions nodeId={node.nodeId} depth={depth} />
+              <div className="flex items-center justify-between gap-1 mb-1">
+                <div className="flex items-center gap-1 min-h-[16px]">
+                  {node.importance && <ImportancePill importance={node.importance} />}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    className="text-[10px] px-1 py-0.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleExpanded(node.nodeId);
+                    }}
+                    title={isExpanded ? 'Collapse node' : 'Expand node'}
+                  >
+                    {isExpanded ? '−' : '+'}
+                  </button>
+                  <TreeNodeActions nodeId={node.nodeId} depth={depth} />
+                </div>
+              </div>
+
+              <div
+                className={`text-xs font-medium text-gray-800 w-full ${
+                  isExpanded ? 'whitespace-pre-wrap break-words leading-5' : 'truncate'
+                }`}
+                title={displayText}
+              >
+                {displayText}
               </div>
             </div>
           );
@@ -210,7 +271,11 @@ function ImportancePill({ importance }: { importance: NonNullable<TreeNodeType['
   return <span className="text-[10px] px-1 py-0.5 rounded bg-orange-100 text-orange-700">Imp</span>;
 }
 
-function computeTreeLayout(root: TreeNodeType): {
+function computeTreeLayout(
+  root: TreeNodeType,
+  expandedNodeIds: Set<string>,
+  getExpandedText: (node: TreeNodeType) => string
+): {
   nodes: PositionedNode[];
   edges: Array<{ from: string; to: string }>;
   width: number;
@@ -218,38 +283,89 @@ function computeTreeLayout(root: TreeNodeType): {
 } {
   const nodes: PositionedNode[] = [];
   const edges: Array<{ from: string; to: string }> = [];
-  let leafIndex = 0;
   let maxDepth = 0;
 
-  const place = (node: TreeNodeType, depth: number): number => {
-    maxDepth = Math.max(maxDepth, depth);
-
+  const measureSubtreeHeight = (node: TreeNodeType): number => {
+    const nodeHeight = getNodeDimensions(
+      expandedNodeIds.has(node.nodeId),
+      getExpandedText(node)
+    ).height;
     if (!node.children || node.children.length === 0) {
-      const y = PADDING + leafIndex * (NODE_HEIGHT + V_GAP) + NODE_HEIGHT / 2;
-      const x = PADDING + depth * (NODE_WIDTH + H_GAP) + NODE_WIDTH / 2;
-      nodes.push({ node, depth, x, y });
-      leafIndex += 1;
-      return y;
+      return nodeHeight;
     }
 
-    const childYs = node.children.map((child) => {
-      edges.push({ from: node.nodeId, to: child.nodeId });
-      return place(child, depth + 1);
-    });
+    const childrenHeight =
+      node.children.reduce((sum, child) => sum + measureSubtreeHeight(child), 0) +
+      Math.max(0, node.children.length - 1) * V_GAP;
 
-    const y = (childYs[0] + childYs[childYs.length - 1]) / 2;
-    const x = PADDING + depth * (NODE_WIDTH + H_GAP) + NODE_WIDTH / 2;
-    nodes.push({ node, depth, x, y });
-    return y;
+    return Math.max(nodeHeight, childrenHeight);
   };
 
-  place(root, 0);
+  const place = (node: TreeNodeType, depth: number, top: number): { centerY: number; usedHeight: number } => {
+    maxDepth = Math.max(maxDepth, depth);
+    const dimensions = getNodeDimensions(
+      expandedNodeIds.has(node.nodeId),
+      getExpandedText(node)
+    );
 
-  const width = PADDING * 2 + (maxDepth + 1) * NODE_WIDTH + maxDepth * H_GAP;
-  const leafCount = Math.max(1, leafIndex);
-  const height = PADDING * 2 + leafCount * NODE_HEIGHT + Math.max(0, leafCount - 1) * V_GAP;
+    if (!node.children || node.children.length === 0) {
+      const y = top + dimensions.height / 2;
+      const x = PADDING + depth * (COLUMN_WIDTH + H_GAP) + COLUMN_WIDTH / 2;
+      nodes.push({ node, depth, x, y, width: dimensions.width, height: dimensions.height });
+      return { centerY: y, usedHeight: dimensions.height };
+    }
+
+    const childrenTotalHeight =
+      node.children.reduce((sum, child) => sum + measureSubtreeHeight(child), 0) +
+      Math.max(0, node.children.length - 1) * V_GAP;
+
+    const usedHeight = Math.max(dimensions.height, childrenTotalHeight);
+    let childTop = top + (usedHeight - childrenTotalHeight) / 2;
+
+    for (const child of node.children) {
+      edges.push({ from: node.nodeId, to: child.nodeId });
+      const placed = place(child, depth + 1, childTop);
+      childTop += placed.usedHeight + V_GAP;
+    }
+
+    const y = top + usedHeight / 2;
+    const x = PADDING + depth * (COLUMN_WIDTH + H_GAP) + COLUMN_WIDTH / 2;
+    nodes.push({ node, depth, x, y, width: dimensions.width, height: dimensions.height });
+    return { centerY: y, usedHeight };
+  };
+
+  const rootPlacement = place(root, 0, PADDING);
+
+  const width = PADDING * 2 + (maxDepth + 1) * COLUMN_WIDTH + maxDepth * H_GAP;
+  const height = PADDING + rootPlacement.usedHeight + PADDING;
 
   return { nodes, edges, width, height };
+}
+
+function getNodeDimensions(
+  isExpanded: boolean,
+  expandedText: string
+): { width: number; height: number } {
+  if (!isExpanded) {
+    return { width: COLLAPSED_NODE_WIDTH, height: COLLAPSED_NODE_HEIGHT };
+  }
+
+  // Estimate wrapped lines close to actual rendering width (text-xs + leading-5 in a 320px card).
+  const contentWidthPx = EXPANDED_NODE_WIDTH - 16; // card horizontal padding
+  const avgCharWidthPx = 6.6;
+  const lineCapacity = Math.max(12, Math.floor(contentWidthPx / avgCharWidthPx));
+  const lineCount = expandedText
+    .split('\n')
+    .reduce((sum, part) => sum + Math.max(1, Math.ceil(part.length / lineCapacity)), 0);
+
+  const textHeight = lineCount * 20; // matches leading-5
+  const controlsHeight = 22;
+  const verticalPadding = 10;
+
+  return {
+    width: EXPANDED_NODE_WIDTH,
+    height: Math.max(68, textHeight + controlsHeight + verticalPadding),
+  };
 }
 
 // Helper functions
