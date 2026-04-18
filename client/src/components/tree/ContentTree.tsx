@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import { TreeNode as TreeNodeType } from '../../types/tree';
-import { TreeNode } from './TreeNode';
 import { useTreeStore } from '../../stores/treeStore';
 import { useCanvasStore } from '../../stores/canvasStore';
+import { TreeNodeActions } from './TreeNodeActions';
 
 interface ContentTreeProps {
   tree?: TreeNodeType | null;
@@ -11,10 +11,24 @@ interface ContentTreeProps {
   loading?: boolean;
 }
 
+interface PositionedNode {
+  node: TreeNodeType;
+  depth: number;
+  x: number;
+  y: number;
+}
+
+const NODE_WIDTH = 180;
+const NODE_HEIGHT = 52;
+const H_GAP = 96;
+const V_GAP = 26;
+const PADDING = 20;
+
 export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, onSelect: propOnSelect, loading }: ContentTreeProps) {
   const storeTree = useTreeStore((s) => s.tree);
   const storeSelectedId = useTreeStore((s) => s.selectedNodeId);
   const storeSetSelected = useTreeStore((s) => s.setSelectedNodeId);
+  const highlightedNodeId = useTreeStore((s) => s.highlightedNodeId);
   const setTree = useTreeStore((s) => s.setTree);
 
   const tree = propTree ?? storeTree;
@@ -70,6 +84,9 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
     setDragOverNodeId(null);
   }, [dragNodeId, dragOverNodeId, tree, setTree]);
 
+  const layout = tree ? computeTreeLayout(tree) : null;
+  const positionById = layout ? new Map(layout.nodes.map((n) => [n.node.nodeId, n])) : new Map<string, PositionedNode>();
+
   if (loading) {
     return (
       <div className="p-4 text-sm text-gray-400 animate-pulse">
@@ -88,18 +105,146 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
 
   return (
     <div className="py-2 overflow-auto">
-      <TreeNode
-        node={tree}
-        depth={0}
-        selectedNodeId={selectedNodeId}
-        onSelect={onSelect}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-        dragOverNodeId={dragOverNodeId}
-      />
+      <div
+        className="relative"
+        style={{
+          width: layout ? Math.max(layout.width, 360) : 360,
+          height: layout ? Math.max(layout.height, 180) : 180,
+          minWidth: '100%',
+        }}
+      >
+        {layout && (
+          <svg
+            className="absolute inset-0"
+            width={layout.width}
+            height={layout.height}
+            viewBox={`0 0 ${layout.width} ${layout.height}`}
+          >
+            {layout.edges.map((edge) => {
+              const from = positionById.get(edge.from);
+              const to = positionById.get(edge.to);
+              if (!from || !to) return null;
+
+              const startX = from.x + NODE_WIDTH / 2;
+              const startY = from.y;
+              const endX = to.x - NODE_WIDTH / 2;
+              const endY = to.y;
+              const midX = (startX + endX) / 2;
+
+              return (
+                <path
+                  key={`${edge.from}-${edge.to}`}
+                  d={`M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`}
+                  fill="none"
+                  stroke="#CBD5E1"
+                  strokeWidth="1.5"
+                />
+              );
+            })}
+          </svg>
+        )}
+
+        {layout?.nodes.map(({ node, depth, x, y }) => {
+          const isSelected = selectedNodeId === node.nodeId;
+          const isHighlighted = highlightedNodeId === node.nodeId;
+          const isDragOver = dragOverNodeId === node.nodeId;
+
+          return (
+            <div
+              key={node.nodeId}
+              className={`group absolute rounded-md border shadow-sm bg-white px-2 py-1.5 cursor-pointer transition-colors ${
+                isSelected ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-200'
+              } ${isHighlighted ? 'bg-yellow-50 border-yellow-300' : ''} ${
+                isDragOver ? 'bg-green-50 border-green-400' : ''
+              }`}
+              style={{
+                width: NODE_WIDTH,
+                minHeight: NODE_HEIGHT,
+                left: x - NODE_WIDTH / 2,
+                top: y - NODE_HEIGHT / 2,
+              }}
+              onClick={() => onSelect?.(node.nodeId)}
+              draggable={depth > 0}
+              onDragStart={(e) => {
+                e.stopPropagation();
+                handleDragStart(node.nodeId);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleDragOver(node.nodeId);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleDragEnd();
+              }}
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-gray-800 truncate flex-1" title={node.name}>
+                  {node.name}
+                </span>
+                {node.importance && <ImportancePill importance={node.importance} />}
+                <TreeNodeActions nodeId={node.nodeId} depth={depth} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
+}
+
+function ImportancePill({ importance }: { importance: NonNullable<TreeNodeType['importance']> }) {
+  if (importance === 'High-Frequency') {
+    return <span className="text-[10px] px-1 py-0.5 rounded bg-red-100 text-red-700">High</span>;
+  }
+  if (importance === 'Awareness') {
+    return <span className="text-[10px] px-1 py-0.5 rounded bg-gray-100 text-gray-600">Aware</span>;
+  }
+  return <span className="text-[10px] px-1 py-0.5 rounded bg-orange-100 text-orange-700">Imp</span>;
+}
+
+function computeTreeLayout(root: TreeNodeType): {
+  nodes: PositionedNode[];
+  edges: Array<{ from: string; to: string }>;
+  width: number;
+  height: number;
+} {
+  const nodes: PositionedNode[] = [];
+  const edges: Array<{ from: string; to: string }> = [];
+  let leafIndex = 0;
+  let maxDepth = 0;
+
+  const place = (node: TreeNodeType, depth: number): number => {
+    maxDepth = Math.max(maxDepth, depth);
+
+    if (!node.children || node.children.length === 0) {
+      const y = PADDING + leafIndex * (NODE_HEIGHT + V_GAP) + NODE_HEIGHT / 2;
+      const x = PADDING + depth * (NODE_WIDTH + H_GAP) + NODE_WIDTH / 2;
+      nodes.push({ node, depth, x, y });
+      leafIndex += 1;
+      return y;
+    }
+
+    const childYs = node.children.map((child) => {
+      edges.push({ from: node.nodeId, to: child.nodeId });
+      return place(child, depth + 1);
+    });
+
+    const y = (childYs[0] + childYs[childYs.length - 1]) / 2;
+    const x = PADDING + depth * (NODE_WIDTH + H_GAP) + NODE_WIDTH / 2;
+    nodes.push({ node, depth, x, y });
+    return y;
+  };
+
+  place(root, 0);
+
+  const width = PADDING * 2 + (maxDepth + 1) * NODE_WIDTH + maxDepth * H_GAP;
+  const leafCount = Math.max(1, leafIndex);
+  const height = PADDING * 2 + leafCount * NODE_HEIGHT + Math.max(0, leafCount - 1) * V_GAP;
+
+  return { nodes, edges, width, height };
 }
 
 // Helper functions
