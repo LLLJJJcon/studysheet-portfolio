@@ -7,6 +7,20 @@ import { config } from '../config';
 const SALT_ROUNDS = 12;
 const JWT_EXPIRES_IN = '7d';
 
+function normalizeApiKey(value: string | null | undefined): string | null {
+  if (value == null) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  // Users often paste keys wrapped in single/double quotes.
+  const hasMatchingQuotes =
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"));
+
+  const unquoted = hasMatchingQuotes ? trimmed.slice(1, -1).trim() : trimmed;
+  return unquoted || null;
+}
+
 export interface AuthPayload {
   userId: string;
   email: string;
@@ -54,14 +68,18 @@ export const authService = {
   ): Promise<IUser | null> {
     const update: Record<string, string | null> = {};
 
+    const normalizedOpenAI = normalizeApiKey(apiKeys.openai);
+    const normalizedAnthropic = normalizeApiKey(apiKeys.anthropic);
+    const normalizedGemini = normalizeApiKey(apiKeys.gemini);
+
     if (apiKeys.openai !== undefined) {
-      update['apiKeys.openai'] = apiKeys.openai ? encrypt(apiKeys.openai) : null;
+      update['apiKeys.openai'] = normalizedOpenAI ? encrypt(normalizedOpenAI) : null;
     }
     if (apiKeys.anthropic !== undefined) {
-      update['apiKeys.anthropic'] = apiKeys.anthropic ? encrypt(apiKeys.anthropic) : null;
+      update['apiKeys.anthropic'] = normalizedAnthropic ? encrypt(normalizedAnthropic) : null;
     }
     if (apiKeys.gemini !== undefined) {
-      update['apiKeys.gemini'] = apiKeys.gemini ? encrypt(apiKeys.gemini) : null;
+      update['apiKeys.gemini'] = normalizedGemini ? encrypt(normalizedGemini) : null;
     }
 
     return User.findByIdAndUpdate(userId, { $set: update }, { new: true }).select('-passwordHash');

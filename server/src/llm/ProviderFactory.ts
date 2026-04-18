@@ -32,7 +32,10 @@ export function createProvider(user: IUser): LLMProvider {
     throw new Error(`No API key configured for provider: ${provider}`);
   }
 
-  const apiKey = decrypt(encryptedKey);
+  const apiKey = decrypt(encryptedKey).trim().replace(/^['\"]|['\"]$/g, '');
+  if (!apiKey) {
+    throw new Error(`Configured API key for provider ${provider} is empty after normalization`);
+  }
 
   let llm: LLMProvider;
   switch (provider) {

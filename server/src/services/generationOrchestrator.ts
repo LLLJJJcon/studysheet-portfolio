@@ -17,6 +17,12 @@ import { calculateFontSize, getLineHeight } from '../utils/fontSizeCalc';
 import { withRetry } from '../middleware/errorHandler';
 import path from 'path';
 
+const MAX_L1_FILE_CHARS = 15000;
+const MAX_L1_TOTAL_CHARS = 60000;
+const MAX_L2_SOURCE_CHARS = 28000;
+const MAX_TREE_DEPTH = 8;
+const MAX_CHILDREN_PER_NODE = 40;
+
 /**
  * Collect the full text from a streaming LLM call with retry on transient errors.
  * Retries up to `retries` times on rate-limit (429), premature close, etc.
@@ -99,6 +105,54 @@ function collectNodeNames(node: ITreeNode, map: Map<string, string>): void {
   for (const ch of node.children || []) collectNodeNames(ch, map);
 }
 
+function truncateForLLM(text: string, maxChars: number): string {
+  const normalized = (text || '').trim();
+  if (normalized.length <= maxChars) return normalized;
+  return `${normalized.slice(0, maxChars)}\n\n[Content truncated due to length]`;
+}
+
+function toSafeNode(node: unknown, depth = 0): Record<string, unknown> {
+  const asObj = (node && typeof node === 'object') ? (node as Record<string, unknown>) : {};
+  const name = typeof asObj.name === 'string' && asObj.name.trim()
+    ? asObj.name.trim()
+    : `Topic ${depth + 1}`;
+
+  const result: Record<string, unknown> = { name };
+
+  if (typeof asObj.sourceFile === 'string' && asObj.sourceFile.trim()) {
+    result.sourceFile = asObj.sourceFile.trim();
+  }
+
+  if (
+    asObj.importance === 'High-Frequency' ||
+    asObj.importance === 'Important' ||
+    asObj.importance === 'Awareness'
+  ) {
+    result.importance = asObj.importance;
+  }
+
+  if (depth < MAX_TREE_DEPTH && Array.isArray(asObj.children)) {
+    result.children = asObj.children
+      .slice(0, MAX_CHILDREN_PER_NODE)
+      .map((ch) => toSafeNode(ch, depth + 1));
+  } else {
+    result.children = [];
+  }
+
+  return result;
+}
+
+function buildFallbackTree(courseName: string, files: Array<{ filename: string }>): Record<string, unknown> {
+  return {
+    name: courseName,
+    children: files.map((f) => ({
+      name: f.filename,
+      sourceFile: f.filename,
+      children: [],
+    })),
+  };
+}
+
 function assignNodeIds(node: Record<string, unknown>): ITreeNode {
   const result: ITreeNode = {
     nodeId: uuidv4(),
@@ -128,6 +182,43 @@ function findNodeById(node: ITreeNode, nodeId: string): ITreeNode | null {
     if (found) return found;
   }
   return null;
+}
+
+function mapLLMErrorToUserMessage(error: unknown): { message: string; retryable: boolean } {
+  const raw = error instanceof Error ? error.message : String(error);
+  const lower = raw.toLowerCase();
+
+  if (
+    lower.includes('insufficient') ||
+    lower.includes('account balance') ||
+    lower.includes('recharge') ||
+    lower.includes('quota exceeded') ||
+    lower.includes('billing')
+  ) {
+    return {
+      message: 'LLM provider balance is insufficient. Please recharge/top up your API account and try again.',
+      retryable: false,
+    };
+  }
+
+  if (lower.includes('api key') || lower.includes('authentication') || lower.includes('unauthorized')) {
+    return {
+      message: 'Invalid API key. Please check your settings.',
+      retryable: false,
+    };
+  }
+
+  if (lower.includes('rate limit') || lower.includes('429')) {
+    return {
+      message: 'Rate limit exceeded. Please wait and retry.',
+      retryable: true,
+    };
+  }
+
+  return {
+    message: raw || 'Generation failed',
+    retryable: true,
+  };
 }
 
 export const generationOrchestrator = {
@@ -182,10 +273,26 @@ export const generationOrchestrator = {
 
       const files = course.files.map((f) => ({
         filename: f.originalName,
-        content: f.extractedText,
+        content: truncateForLLM(f.extractedText, MAX_L1_FILE_CHARS),
       }));
 
-      const l1Messages = buildL1Prompt(course.name, files);
+      // Enforce a global cap so very large uploads do not blow up provider requests.
+      let usedChars = 0;
+      const filesForL1 = files.map((f) => {
+        const remaining = Math.max(0, MAX_L1_TOTAL_CHARS - usedChars);
+        if (remaining <= 0) {
+          return {
+            filename: f.filename,
+            content: '[Skipped due to total request size limit]'
+          };
+        }
+
+        const capped = truncateForLLM(f.content, remaining);
+        usedChars += capped.length;
+        return { filename: f.filename, content: capped };
+      });
+
+      const l1Messages = buildL1Prompt(course.name, filesForL1);
 
       let fullResponse = '';
       try {
@@ -197,7 +304,8 @@ export const generationOrchestrator = {
         );
       } catch (streamErr) {
         console.error('L1 stream failed:', streamErr instanceof Error ? streamErr.message : streamErr);
-        sendSSEError(res, 'LLM stream failed during tree generation. Please try again.', true);
+        const mapped = mapLLMErrorToUserMessage(streamErr);
+        sendSSEError(res, mapped.message, mapped.retryable);
         await courseService.updateStatus(courseId, 'created');
         return;
       }
@@ -206,7 +314,8 @@ export const generationOrchestrator = {
       let parsedTree: Record<string, unknown>;
       try {
         const parsed = extractJSON(fullResponse) as Record<string, unknown>;
-        parsedTree = (parsed.tree as Record<string, unknown>) || parsed;
+        const rawTree = (parsed.tree as Record<string, unknown>) || parsed;
+        parsedTree = toSafeNode(rawTree);
       } catch {
         // Retry once with lower temperature
         sendSSE(res, 'l1:retry', { reason: 'JSON parse failed, retrying...' });
@@ -218,12 +327,13 @@ export const generationOrchestrator = {
             (text) => sendSSE(res, 'l1:chunk', { partialJson: text })
           );
           const parsed = extractJSON(fullResponse) as Record<string, unknown>;
-          parsedTree = (parsed.tree as Record<string, unknown>) || parsed;
+          const rawTree = (parsed.tree as Record<string, unknown>) || parsed;
+          parsedTree = toSafeNode(rawTree);
         } catch (retryErr) {
           console.error('L1 parse failed. Raw response:', fullResponse.substring(0, 500));
-          sendSSEError(res, 'Failed to parse L1 output after retry. Please try again.', true);
-          await courseService.updateStatus(courseId, 'created');
-          return;
+          // Fall back to a minimal tree so downstream stages can still proceed.
+          parsedTree = buildFallbackTree(course.name, filesForL1);
+          sendSSE(res, 'l1:retry', { reason: 'Using fallback tree due to parse failure.' });
         }
       }
 
@@ -250,7 +360,10 @@ export const generationOrchestrator = {
       for (const f of course.files) {
         fileContentMap.set(f.originalName, f.extractedText);
       }
-      const allContent = course.files.map((f) => f.extractedText).join('\n\n');
+      const allContent = truncateForLLM(
+        course.files.map((f) => f.extractedText).join('\n\n'),
+        MAX_L2_SOURCE_CHARS
+      );
 
       // Get second-level nodes (children of root) for parallel processing
       const secondLevelNodes = treeWithIds.children || [];
@@ -264,9 +377,14 @@ export const generationOrchestrator = {
         const promises = batch.map(async (subtree) => {
           try {
             // Determine source content for this subtree
-            const sourceContent = subtree.sourceFile
+            const sourceContentRaw = subtree.sourceFile
               ? fileContentMap.get(subtree.sourceFile) || allContent
               : allContent;
+
+            const sourceContent = truncateForLLM(sourceContentRaw, MAX_L2_SOURCE_CHARS);
+            if (!sourceContent.trim()) {
+              throw new Error('Source content is empty after truncation');
+            }
 
             const l2Messages = buildL2Prompt(course.name, sourceContent, subtree);
 
@@ -279,7 +397,9 @@ export const generationOrchestrator = {
 
             // Parse L2 output
             const parsed = extractJSON(l2Response) as Record<string, unknown>;
-            const chunks = (parsed.chunks || []) as Array<{ node_id: string; content: string; word_count?: number; source_start?: string; source_end?: string }>;
+            const chunks = Array.isArray(parsed.chunks)
+              ? (parsed.chunks as Array<{ node_id: string; content: string; word_count?: number; source_start?: string; source_end?: string }>)
+              : [];
 
             // Save each chunk to DB
             for (const c of chunks) {
@@ -289,7 +409,7 @@ export const generationOrchestrator = {
               await chunkService.upsertChunk(
                 courseId,
                 c.node_id,
-                c.content,
+                typeof c.content === 'string' ? c.content : '',
                 c.word_count || 0,
                 importance,
                 c.source_start || '',
@@ -301,14 +421,14 @@ export const generationOrchestrator = {
             sendSSE(res, 'l2:subtree-complete', {
               subtreeName: subtree.name,
               chunkCount: chunks.length,
-              progress: completedSubtrees / totalSubtrees,
+              progress: completedSubtrees / Math.max(totalSubtrees, 1),
             });
           } catch (err) {
             console.error(`L2 failed for subtree "${subtree.name}":`, err instanceof Error ? err.message : err);
             completedSubtrees++;
             sendSSE(res, 'l2:subtree-error', {
               subtreeName: subtree.name,
-              progress: completedSubtrees / totalSubtrees,
+              progress: completedSubtrees / Math.max(totalSubtrees, 1),
             });
           }
         });
@@ -342,9 +462,10 @@ export const generationOrchestrator = {
 
         for (const { subtree, nodeIds } of missingBySubtree.values()) {
           try {
-            const sourceContent = subtree.sourceFile
+            const sourceContentRaw = subtree.sourceFile
               ? fileContentMap.get(subtree.sourceFile) || allContent
               : allContent;
+            const sourceContent = truncateForLLM(sourceContentRaw, MAX_L2_SOURCE_CHARS);
             const l2Messages = buildL2Prompt(course.name, sourceContent, subtree);
             const l2Retry = await streamCollect(
               provider,
@@ -352,12 +473,22 @@ export const generationOrchestrator = {
               1
             );
             const parsed = extractJSON(l2Retry) as Record<string, unknown>;
-            const chunks = (parsed.chunks || []) as Array<{ node_id: string; content: string; word_count?: number; source_start?: string; source_end?: string }>;
+            const chunks = Array.isArray(parsed.chunks)
+              ? (parsed.chunks as Array<{ node_id: string; content: string; word_count?: number; source_start?: string; source_end?: string }>)
+              : [];
             for (const c of chunks) {
               if (nodeIds.includes(c.node_id)) {
                 const leafNode = findNodeById(subtree, c.node_id);
                 const importance = leafNode?.importance || 'Important';
-                await chunkService.upsertChunk(courseId, c.node_id, c.content, c.word_count || 0, importance, c.source_start || '', c.source_end || '');
+                await chunkService.upsertChunk(
+                  courseId,
+                  c.node_id,
+                  typeof c.content === 'string' ? c.content : '',
+                  c.word_count || 0,
+                  importance,
+                  c.source_start || '',
+                  c.source_end || ''
+                );
               }
             }
           } catch (e) {
@@ -476,16 +607,8 @@ export const generationOrchestrator = {
       endSSE(res);
     } catch (error) {
       console.error('Generation error:', error);
-      const message = error instanceof Error ? error.message : 'Generation failed';
-
-      // Check for common LLM errors
-      if (message.includes('API key') || message.includes('authentication')) {
-        sendSSEError(res, 'Invalid API key. Please check your settings.', false);
-      } else if (message.includes('rate limit') || message.includes('429')) {
-        sendSSEError(res, 'Rate limit exceeded. Please wait and retry.', true);
-      } else {
-        sendSSEError(res, message, true);
-      }
+      const mapped = mapLLMErrorToUserMessage(error);
+      sendSSEError(res, mapped.message, mapped.retryable);
 
       await courseService.updateStatus(courseId, 'created').catch(() => {});
     }
