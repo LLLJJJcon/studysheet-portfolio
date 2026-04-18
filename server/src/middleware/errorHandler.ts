@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
 
 export const errorHandler = (
   err: Error,
@@ -7,6 +8,21 @@ export const errorHandler = (
   _next: NextFunction
 ): void => {
   console.error('Error:', err.message);
+
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      res.status(413).json({ error: 'File too large. Maximum size is 50MB.' });
+      return;
+    }
+
+    res.status(400).json({ error: err.message });
+    return;
+  }
+
+  if (err.name === 'MulterFileTypeError' || err.message.startsWith('Unsupported file type:')) {
+    res.status(400).json({ error: err.message });
+    return;
+  }
 
   if (err.message === 'Email already registered') {
     res.status(409).json({ error: err.message });

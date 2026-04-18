@@ -32,13 +32,23 @@ export function FileUploader({ courseId, onUploadComplete }: FileUploaderProps) 
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        let message = 'Upload failed';
+        try {
+          const data = await response.json();
+          if (data?.error && typeof data.error === 'string') {
+            message = data.error;
+          }
+        } catch {
+          // Keep default message if response body is not JSON.
+        }
+        throw new Error(message);
       }
 
       setProgress('Upload successful!');
       onUploadComplete();
-    } catch {
-      setProgress('Upload failed,Please retry');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Upload failed, please retry';
+      setProgress(message);
     } finally {
       setUploading(false);
     }
@@ -85,7 +95,7 @@ export function FileUploader({ courseId, onUploadComplete }: FileUploaderProps) 
       </div>
 
       {progress && (
-        <p className={`mt-4 text-sm ${uploading ? 'text-blue-600' : progress.includes('Failed') ? 'text-red-600' : 'text-green-600'}`}>
+        <p className={`mt-4 text-sm ${uploading ? 'text-blue-600' : progress.toLowerCase().includes('fail') || progress.toLowerCase().includes('unsupported') || progress.toLowerCase().includes('error') ? 'text-red-600' : 'text-green-600'}`}>
           {progress}
         </p>
       )}
