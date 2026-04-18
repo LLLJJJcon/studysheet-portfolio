@@ -5,12 +5,38 @@ const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
 const AUTH_TAG_LENGTH = 16;
 
+let hasWarnedAboutEncryptionKey = false;
+
+function warnFallback(reason: string): void {
+  if (hasWarnedAboutEncryptionKey) return;
+  hasWarnedAboutEncryptionKey = true;
+  console.warn(`[encryption] ${reason}. Falling back to a derived key.`);
+}
+
+function deriveKey(source: string): Buffer {
+  return crypto.createHash('sha256').update(source).digest();
+}
+
 function getKey(): Buffer {
-  const key = config.encryptionKey;
-  if (!key || key.length < 32) {
-    throw new Error('ENCRYPTION_KEY must be at least 32 hex characters');
+  const rawKey = (config.encryptionKey || '').trim();
+
+  if (!rawKey) {
+    warnFallback('ENCRYPTION_KEY is not set');
+    return deriveKey(config.jwtSecret);
   }
-  return Buffer.from(key.slice(0, 64), 'hex');
+
+  const isHex = /^[0-9a-fA-F]+$/.test(rawKey);
+  if (isHex) {
+    // AES-256 expects exactly 32 bytes (64 hex chars).
+    if (rawKey.length < 64) {
+      warnFallback('ENCRYPTION_KEY is hex but shorter than 64 characters');
+      return deriveKey(rawKey);
+    }
+    return Buffer.from(rawKey.slice(0, 64), 'hex');
+  }
+
+  warnFallback('ENCRYPTION_KEY is non-hex text');
+  return deriveKey(rawKey);
 }
 
 export function encrypt(text: string): string {
