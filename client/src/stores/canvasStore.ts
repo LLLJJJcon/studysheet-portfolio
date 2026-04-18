@@ -48,6 +48,7 @@ interface CanvasState {
   moveChunkToStaging: (nodeId: string) => void;
   swapChunks: (nodeIdA: string, nodeIdB: string) => void;
   moveChunk: (draggedNodeId: string, targetNodeId: string, position: 'before' | 'after') => void;
+  moveChunkToParentContainer: (nodeId: string, targetParentNodeId: string) => void;
   addChunk: (nodeId: string, content: string, importance: string, afterNodeId?: string) => void;
 }
 
@@ -219,6 +220,38 @@ export const useCanvasStore = create<CanvasState>()(subscribeWithSelector((set) 
         const insertIdx = position === 'before' ? targetChunkIdx : targetChunkIdx + 1;
         targetChunks.splice(insertIdx, 0, draggedChunk);
       }
+
+      return { containers: newContainers };
+    }),
+
+  moveChunkToParentContainer: (nodeId, targetParentNodeId) =>
+    set((state) => {
+      let sourceContainerIdx = -1;
+      let sourceChunkIdx = -1;
+      let movedChunk: ChunkPosition | null = null;
+
+      for (let ci = 0; ci < state.containers.length; ci++) {
+        const chunkIdx = state.containers[ci].chunks.findIndex((ch) => ch.nodeId === nodeId);
+        if (chunkIdx !== -1) {
+          sourceContainerIdx = ci;
+          sourceChunkIdx = chunkIdx;
+          movedChunk = { ...state.containers[ci].chunks[chunkIdx] };
+          break;
+        }
+      }
+
+      if (!movedChunk) return {};
+
+      const targetContainerIdx = state.containers.findIndex(
+        (c) => c.parentNodeId === targetParentNodeId && c.page >= 0
+      );
+
+      if (targetContainerIdx === -1) return {};
+      if (sourceContainerIdx === targetContainerIdx) return {};
+
+      const newContainers = state.containers.map((c) => ({ ...c, chunks: [...c.chunks] }));
+      newContainers[sourceContainerIdx].chunks.splice(sourceChunkIdx, 1);
+      newContainers[targetContainerIdx].chunks.push(movedChunk);
 
       return { containers: newContainers };
     }),
