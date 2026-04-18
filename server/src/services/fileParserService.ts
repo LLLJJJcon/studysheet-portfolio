@@ -1,5 +1,10 @@
 import fs from 'fs';
 import path from 'path';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+import os from 'os';
+
+const execFileAsync = promisify(execFile);
 
 export const fileParserService = {
   async parseFile(filePath: string, mimeType: string): Promise<string> {
@@ -33,10 +38,52 @@ export const fileParserService = {
       const pdfParse = (await import('pdf-parse')).default;
       const buffer = await fs.promises.readFile(filePath);
       const data = await pdfParse(buffer);
-      return data.text;
+      const text = data.text.trim();
+      if (text.length > 10) {
+        return text;
+      }
+      // Text layer is empty/minimal — try OCR
+      console.log('PDF text layer empty, falling back to OCR...');
+      return this.ocrPdf(filePath, data.numpages);
     } catch (error) {
       console.error('PDF parse error:', error);
       return '[Failed to parse PDF]';
+    }
+  },
+
+  async ocrPdf(filePath: string, numPages?: number): Promise<string> {
+    const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'ocr-'));
+    try {
+      const pageCount = numPages || 1;
+      const prefix = path.join(tmpDir, 'page');
+      // Convert PDF pages to images
+      await execFileAsync('pdftoppm', ['-png', '-r', '200', filePath, prefix]);
+
+      const files = (await fs.promises.readdir(tmpDir))
+        .filter(f => f.endsWith('.png'))
+        .sort();
+
+      const texts: string[] = [];
+      for (const file of files) {
+        const imgPath = path.join(tmpDir, file);
+        const outBase = imgPath.replace('.png', '');
+        await execFileAsync('tesseract', [imgPath, outBase, '-l', 'chi_sim+eng']);
+        const txt = await fs.promises.readFile(outBase + '.txt', 'utf-8');
+        texts.push(txt.trim());
+      }
+
+      const result = texts.join('\n\n');
+      if (result.length > 10) {
+        console.log(`OCR extracted ${result.length} chars from ${files.length} pages`);
+        return result;
+      }
+      return '[PDF appears to be blank or unreadable]';
+    } catch (error) {
+      console.error('OCR fallback error:', error);
+      return '[Failed to extract text via OCR]';
+    } finally {
+      // Cleanup temp files
+      await fs.promises.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
     }
   },
 
@@ -67,8 +114,20 @@ export const fileParserService = {
     }
   },
 
-  async parseImage(_filePath: string): Promise<string> {
-    // OCR placeholder - tesseract.js is heavy, defer to future
-    return '[Image uploaded - OCR processing not yet implemented]';
+  async parseImage(filePath: string): Promise<string> {
+    try {
+      const outBase = filePath + '_ocr';
+      await execFileAsync('tesseract', [filePath, outBase, '-l', 'chi_sim+eng']);
+      const txt = await fs.promises.readFile(outBase + '.txt', 'utf-8');
+      await fs.promises.unlink(outBase + '.txt').catch(() => {});
+      const result = txt.trim();
+      if (result.length > 10) {
+        return result;
+      }
+      return '[Image appears to be blank or unreadable]';
+    } catch (error) {
+      console.error('Image OCR error:', error);
+      return '[Failed to extract text from image]';
+    }
   },
 };
