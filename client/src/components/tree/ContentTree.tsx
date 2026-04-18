@@ -21,7 +21,7 @@ interface PositionedNode {
 }
 
 const COLLAPSED_NODE_WIDTH = 180;
-const COLLAPSED_NODE_HEIGHT = 52;
+const COLLAPSED_NODE_HEIGHT = 72;
 const EXPANDED_NODE_WIDTH = 320;
 const COLUMN_WIDTH = 240;
 const H_GAP = 96;
@@ -247,9 +247,18 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
 
               <div
                 className={`text-xs font-medium text-gray-800 w-full ${
-                  isExpanded ? 'whitespace-pre-wrap break-words leading-5' : 'truncate'
+                  isExpanded ? 'whitespace-pre-wrap break-words leading-5' : 'overflow-hidden leading-4'
                 }`}
                 title={displayText}
+                style={
+                  isExpanded
+                    ? undefined
+                    : {
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                      }
+                }
               >
                 {displayText}
               </div>
