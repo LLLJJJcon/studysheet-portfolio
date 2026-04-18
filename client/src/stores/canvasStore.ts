@@ -130,7 +130,7 @@ export const useCanvasStore = create<CanvasState>()(subscribeWithSelector((set) 
           stagingContainer = {
             id: 'staging',
             parentNodeId: 'staging',
-            title: '暂存区',
+            title: 'Staging area',
             page: -1,
             x: 0,
             y: 0,

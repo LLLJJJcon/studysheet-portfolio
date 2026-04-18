@@ -30,7 +30,7 @@ export function CourseListPage() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('确定删除此课程？删除后无法恢复。')) return;
+    if (!confirm('Confirm delete this course? Cannot be recovered after deletion.')) return;
     try {
       await api.delete(`/courses/${id}`);
       setCourses((prev) => prev.filter((c) => c._id !== id));
@@ -49,13 +49,13 @@ export function CourseListPage() {
               onClick={() => navigate('/settings')}
               className="text-sm text-gray-600 hover:text-gray-900"
             >
-              设置
+              Settings
             </button>
             <button
               onClick={() => { logout(); navigate('/login'); }}
               className="text-sm text-red-500 hover:text-red-700"
             >
-              退出登录
+              Log Out
             </button>
           </div>
         </div>
@@ -63,12 +63,12 @@ export function CourseListPage() {
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">我的课程</h2>
+          <h2 className="text-2xl font-bold">My Courses</h2>
           <button
             onClick={() => setShowCreate(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
-            + 新建课程
+            + Create new course
           </button>
         </div>
 
@@ -82,7 +82,7 @@ export function CourseListPage() {
         />
 
         {loading ? (
-          <Loading message="加载中..." className="py-12" />
+          <Loading message="Loading..." className="py-12" />
         ) : (
           <CourseList
             courses={courses}

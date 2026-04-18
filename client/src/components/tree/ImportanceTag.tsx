@@ -40,7 +40,7 @@ export function ImportanceTag({ importance, onClick, onCycle }: ImportanceTagPro
         isClickable ? 'cursor-pointer hover:opacity-80 active:scale-95 transition-all' : ''
       }`}
       onClick={handleClick}
-      title={isClickable ? '点击切换重要度' : undefined}
+      title={isClickable ? 'Click to toggle importance' : undefined}
     >
       {color.label}
     </span>

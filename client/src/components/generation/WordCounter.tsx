@@ -26,7 +26,7 @@ export const WordCounter: React.FC<WordCounterProps> = ({ targetWordCount, showP
           {targetWordCount && (
             <span> / {targetWordCount.toLocaleString()}</span>
           )}{' '}
-          字
+          Character/Word
         </div>
         {targetWordCount && (
           <div className="flex-1 max-w-[120px] h-2 bg-gray-200 rounded-full overflow-hidden">

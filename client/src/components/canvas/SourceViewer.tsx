@@ -49,9 +49,9 @@ export const SourceViewer: React.FC<SourceViewerProps> = ({
   return (
     <div className="h-full flex flex-col bg-white border-l border-gray-200">
       {loading ? (
-        <div className="p-12 text-center text-gray-400">加载中...</div>
+        <div className="p-12 text-center text-gray-400">Loading...</div>
       ) : !meta ? (
-        <div className="p-12 text-center text-gray-400">无法加载源文件</div>
+        <div className="p-12 text-center text-gray-400">Cannot load source file</div>
       ) : isPdf ? (
         <PdfViewer
           courseId={courseId}
@@ -216,7 +216,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
           <span className="text-sm font-medium text-gray-700">📄 {filename}</span>
           {targetPage && (
             <span className="text-xs text-blue-500 bg-blue-50 px-2 py-0.5 rounded">
-              引用位于第 {targetPage} 页
+              Reference is at {targetPage} Page
             </span>
           )}
         </div>
@@ -253,7 +253,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
               onClick={() => setCurrentPage(targetPage)}
               className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 ml-1"
             >
-              跳转引用
+              Jump to reference
             </button>
           )}
 
@@ -271,8 +271,8 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
           <Document
             file={pdfFile}
             onLoadSuccess={onDocumentLoadSuccess}
-            loading={<div className="p-12 text-center text-gray-400">加载PDF中...</div>}
-            error={<div className="p-12 text-center text-red-400">PDF加载失败</div>}
+            loading={<div className="p-12 text-center text-gray-400">Loading PDF...</div>}
+            error={<div className="p-12 text-center text-red-400">PDF Load failed</div>}
           >
             <Page
               pageNumber={currentPage}
@@ -282,7 +282,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
             />
           </Document>
         ) : (
-          <div className="p-12 text-center text-gray-400">准备中...</div>
+          <div className="p-12 text-center text-gray-400">Preparing...</div>
         )}
       </div>
 
@@ -386,7 +386,7 @@ const TextViewer: React.FC<TextViewerProps> = ({
           <span className="text-sm font-medium text-gray-700">📄 {filename}</span>
           {highlightRange && (
             <span className="text-xs text-blue-500">
-              第 {highlightRange.startLine + 1}-{highlightRange.endLine + 1} 行
+              No. (ordinal) {highlightRange.startLine + 1}-{highlightRange.endLine + 1} Row
             </span>
           )}
         </div>

@@ -34,7 +34,7 @@ export const ChunkToolbar: React.FC<ChunkToolbarProps> = ({
       {sourceFile && (
         <button
           className="text-[10px] text-gray-500 px-1 truncate max-w-[150px] hover:text-blue-600"
-          title={`查看来源: ${sourceFile}`}
+          title={`View source: ${sourceFile}`}
           onClick={handleShowSource}
         >
           📄 {sourceFile}
@@ -43,7 +43,7 @@ export const ChunkToolbar: React.FC<ChunkToolbarProps> = ({
       <button
         className="p-1 hover:bg-red-50 rounded text-red-500 transition-colors"
         onClick={handleDelete}
-        title="删除"
+        title="Delete"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path

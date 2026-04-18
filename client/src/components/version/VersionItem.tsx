@@ -37,7 +37,7 @@ export const VersionItem: React.FC<VersionItemProps> = ({
           <span className="text-xs font-mono text-gray-400">v{versionNumber}</span>
           {isBaseline && (
             <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 text-blue-700 rounded">
-              基线
+              Baseline
             </span>
           )}
         </div>
@@ -51,7 +51,7 @@ export const VersionItem: React.FC<VersionItemProps> = ({
           onClick={() => onRestore(versionId)}
           className="px-2 py-0.5 text-[11px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
         >
-          恢复
+          Restore
         </button>
         {!isBaseline && (
           <>
@@ -59,14 +59,14 @@ export const VersionItem: React.FC<VersionItemProps> = ({
               onClick={() => onMarkBaseline(versionId)}
               className="px-2 py-0.5 text-[11px] font-medium text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
             >
-              标记基线
+              Mark baseline
             </button>
             {onDelete && (
               <button
                 onClick={() => onDelete(versionId)}
                 className="px-2 py-0.5 text-[11px] font-medium text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors ml-auto"
               >
-                删除
+                Delete
               </button>
             )}
           </>

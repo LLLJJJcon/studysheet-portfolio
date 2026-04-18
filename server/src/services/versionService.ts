@@ -30,7 +30,7 @@ export const versionService = {
     const version = await Version.create({
       courseId,
       versionNumber: nextNumber,
-      label: label || `自动保存 #${nextNumber}`,
+      label: label || `Auto-save #${nextNumber}`,
       description: description || '',
       isBaseline: false,
       treeSnapshot: tree.tree,
@@ -110,7 +110,7 @@ export const versionService = {
 
     // Auto-save current state before restoring
     try {
-      await this.autoSave(courseId, '恢复前自动保存');
+      await this.autoSave(courseId, 'Auto-save before restoration');
     } catch {
       // Ignore if current state can't be saved
     }

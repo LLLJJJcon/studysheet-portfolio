@@ -39,7 +39,7 @@ export function PageConfigForm({ onSubmit, onCancel }: PageConfigFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">页面尺寸</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Page size</label>
         <div className="flex gap-2">
           {(['A4', '16:9', 'custom'] as const).map((s) => (
             <button
@@ -52,7 +52,7 @@ export function PageConfigForm({ onSubmit, onCancel }: PageConfigFormProps) {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {s === 'custom' ? '自定义' : s}
+              {s === 'custom' ? 'Custom' : s}
             </button>
           ))}
         </div>
@@ -61,7 +61,7 @@ export function PageConfigForm({ onSubmit, onCancel }: PageConfigFormProps) {
       {size === 'custom' && (
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">宽度 (mm)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Width (mm)</label>
             <input
               type="number"
               value={width}
@@ -72,7 +72,7 @@ export function PageConfigForm({ onSubmit, onCancel }: PageConfigFormProps) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">高度 (mm)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Height (mm)</label>
             <input
               type="number"
               value={height}
@@ -86,7 +86,7 @@ export function PageConfigForm({ onSubmit, onCancel }: PageConfigFormProps) {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">页数</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Number of pages</label>
         <input
           type="number"
           value={pages}
@@ -99,33 +99,33 @@ export function PageConfigForm({ onSubmit, onCancel }: PageConfigFormProps) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">栏数</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Number of columns</label>
           <select
             value={columns}
             onChange={(e) => setColumns(Number(e.target.value))}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           >
-            <option value={0}>自动</option>
-            <option value={1}>1 栏</option>
-            <option value={2}>2 栏</option>
-            <option value={3}>3 栏</option>
-            <option value={4}>4 栏</option>
+            <option value={0}>Auto</option>
+            <option value={1}>1 Column</option>
+            <option value={2}>2 Column</option>
+            <option value={3}>3 Column</option>
+            <option value={4}>4 Column</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">字体大小</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Font size</label>
           <select
             value={fontSize}
             onChange={(e) => setFontSize(Number(e.target.value))}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           >
-            <option value={0}>自动</option>
-            <option value={6}>6pt (极小)</option>
-            <option value={7}>7pt (紧凑)</option>
-            <option value={8}>8pt (适中)</option>
+            <option value={0}>Auto</option>
+            <option value={6}>6pt (Extra small)</option>
+            <option value={7}>7pt (Compact)</option>
+            <option value={8}>8pt (Moderate)</option>
             <option value={9}>9pt</option>
-            <option value={10}>10pt (标准)</option>
-            <option value={12}>12pt (大)</option>
+            <option value={10}>10pt (Standard)</option>
+            <option value={12}>12pt (Large)</option>
           </select>
         </div>
       </div>
@@ -135,14 +135,14 @@ export function PageConfigForm({ onSubmit, onCancel }: PageConfigFormProps) {
           type="submit"
           className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700"
         >
-          确定
+          Confirm
         </button>
         <button
           type="button"
           onClick={onCancel}
           className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
         >
-          返回
+          Return
         </button>
       </div>
     </form>

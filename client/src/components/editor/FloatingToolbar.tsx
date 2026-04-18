@@ -73,16 +73,16 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
           className="px-2 py-0.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
           onClick={handleSave}
         >
-          保存 (Ctrl+Enter)
+          Save (Ctrl+Enter)
         </button>
         <button
           className="px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
           onClick={onCancel}
         >
-          取消 (Esc)
+          Cancel (Esc)
         </button>
         <span className="text-xs text-gray-400 ml-2">
-          {editValue.length} 字符
+          {editValue.length} Character
         </span>
       </div>
 

@@ -87,11 +87,11 @@ export const StagingArea: React.FC<StagingAreaProps> = ({
           />
         </svg>
         <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-          暂存区 (Staging Area)
+          Staging area (Staging Area)
         </span>
         {stagedChunks.length > 0 && (
           <span className="text-xs text-gray-400">
-            — {stagedChunks.length} 个知识块
+            — {stagedChunks.length} knowledge block(s)
           </span>
         )}
       </div>
@@ -99,7 +99,7 @@ export const StagingArea: React.FC<StagingAreaProps> = ({
       {/* Empty state */}
       {stagedChunks.length === 0 && (
         <div className="flex items-center justify-center h-32 text-sm text-gray-400">
-          将知识块拖到此处暂存
+          Drag knowledge blocks here to stage
         </div>
       )}
 

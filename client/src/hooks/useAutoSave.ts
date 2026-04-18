@@ -77,7 +77,7 @@ export function useAutoSave({ courseId, enabled = true }: UseAutoSaveOptions) {
     const handleUnload = () => {
       // Use sendBeacon for reliability during unload
       const url = `/api/courses/${courseId}/versions`;
-      const body = JSON.stringify({ label: '页面关闭自动保存' });
+      const body = JSON.stringify({ label: 'Auto-save when page closes' });
       navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
     };
 

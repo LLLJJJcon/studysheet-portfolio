@@ -219,7 +219,7 @@ body {
 
   const handleDeleteFile = async (fileId: string) => {
     if (!id || deletingFileId) return;
-    if (!confirm('确定删除此文件？')) return;
+    if (!confirm('Confirm delete this file?')) return;
     setDeletingFileId(fileId);
     try {
       await courseApi.removeFile(id, fileId);
@@ -248,7 +248,7 @@ body {
 
   const handleStartGeneration = async () => {
     if (!id || generating) return;
-    if (tree && !confirm('重新生成将覆盖当前内容，确定继续？')) return;
+    if (tree && !confirm('Regenerating will overwrite current content,Confirm continue?')) return;
     setGenerating(true);
     setShowUploadArea(false);
     setPhase('l1:generating');
@@ -413,7 +413,7 @@ body {
   if (!currentCourse) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <Loading size="lg" message="加载课程中..." />
+        <Loading size="lg" message="Loading course..." />
       </div>
     );
   }
@@ -441,7 +441,7 @@ body {
           <button
             onClick={() => navigate('/settings')}
             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded transition-colors"
-            title="设置"
+            title="Settings"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -452,7 +452,7 @@ body {
             <button
               onClick={() => setVersionPanelOpen(true)}
               className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-              title="版本历史"
+              title="Version history"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -467,14 +467,14 @@ body {
       {tree && (
         <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-200 bg-gray-50 text-xs">
           <label className="flex items-center gap-1 text-gray-600">
-            栏数
+            Number of columns
             <select
               className="border border-gray-300 rounded px-1.5 py-0.5 text-xs bg-white"
               value={localColumns}
               disabled={relayouting}
               onChange={(e) => handleRelayout({ columns: Number(e.target.value) })}
             >
-              <option value={0}>自动</option>
+              <option value={0}>Auto</option>
               <option value={1}>1</option>
               <option value={2}>2</option>
               <option value={3}>3</option>
@@ -482,30 +482,30 @@ body {
             </select>
           </label>
           <label className="flex items-center gap-1 text-gray-600">
-            字号
+            Font size
             <select
               className="border border-gray-300 rounded px-1.5 py-0.5 text-xs bg-white"
               value={localFontSize}
               disabled={relayouting}
               onChange={(e) => handleRelayout({ fontSize: Number(e.target.value) })}
             >
-              <option value={0}>自动</option>
+              <option value={0}>Auto</option>
               {[6, 7, 8, 9, 10, 11, 12].map((s) => (
                 <option key={s} value={s}>{s}pt</option>
               ))}
             </select>
           </label>
-          {relayouting && <span className="text-gray-400">重排中…</span>}
+          {relayouting && <span className="text-gray-400">Re-sorting…</span>}
           <div className="ml-auto">
             <button
               onClick={handleExportPDF}
               className="px-2 py-0.5 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors flex items-center gap-1"
-              title="导出 PDF"
+              title="Export PDF"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              导出 PDF
+              Export PDF
             </button>
           </div>
         </div>
@@ -527,7 +527,7 @@ body {
           {currentCourse.files && currentCourse.files.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-medium text-gray-600">
-                已上传文件 ({currentCourse.files.length})
+                File uploaded ({currentCourse.files.length})
               </p>
               <ul className="space-y-1 max-h-40 overflow-auto">
                 {currentCourse.files.map((f) => (
@@ -540,7 +540,7 @@ body {
                       onClick={() => handleDeleteFile(f.fileId)}
                       disabled={deletingFileId === f.fileId}
                       className="ml-2 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                      title="删除文件"
+                      title="Delete file"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -554,14 +554,14 @@ body {
                 disabled={generating}
                 className="w-full py-2.5 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 font-medium"
               >
-                {generating ? '生成中...' : tree ? '重新生成' : '开始生成'}
+                {generating ? 'Generating...' : tree ? 'Regenerate' : 'Start generation'}
               </button>
               {showUploadArea && (
                 <button
                   onClick={() => setShowUploadArea(false)}
                   className="w-full py-1.5 text-xs text-gray-400 hover:text-gray-600"
                 >
-                  收起
+                  Collapse
                 </button>
               )}
             </div>
@@ -579,7 +579,7 @@ body {
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
             </svg>
-            上传文件 / 重新生成
+            Upload file / Regenerate
           </button>
         </div>
       )}

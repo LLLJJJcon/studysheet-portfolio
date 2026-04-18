@@ -2,23 +2,23 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useGenerationStore } from '../../stores/generationStore';
 
 const PHASE_LABELS: Record<string, string> = {
-  idle: '就绪',
-  'l1:generating': 'L1: 生成考点树...',
-  'l1:complete': 'L1: 考点树已完成',
-  'l2:generating': 'L2: 生成分块内容...',
-  'l2:complete': 'L2: 分块内容已完成',
-  'l3:compressing': 'L3: 内容压缩中...',
-  'l3:complete': 'L3: 压缩已完成',
-  'l4:layout': 'L4: 排版中...',
-  'l4:complete': 'L4: 排版已完成',
-  done: '生成完成',
-  error: '出错',
+  idle: 'Ready',
+  'l1:generating': 'L1: Generate knowledge point tree...',
+  'l1:complete': 'L1: Knowledge point tree completed',
+  'l2:generating': 'L2: Generate chunked content...',
+  'l2:complete': 'L2: Chunking content completed',
+  'l3:compressing': 'L3: Compressing content...',
+  'l3:complete': 'L3: Compression completed',
+  'l4:layout': 'L4: Formatting...',
+  'l4:complete': 'L4: Formatting completed',
+  done: 'Generation completed',
+  error: 'Error',
 };
 
 const IMPORTANCE_LABELS: Record<string, string> = {
-  Awareness: '了解级',
-  Important: '重要级',
-  'High-Frequency': '高频级',
+  Awareness: 'Understanding level',
+  Important: 'Importance level',
+  'High-Frequency': 'High frequency level',
 };
 
 export const GenerationStatus: React.FC = () => {
@@ -56,7 +56,7 @@ export const GenerationStatus: React.FC = () => {
   const formatElapsed = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
-    return m > 0 ? `${m}分${sec.toString().padStart(2, '0')}秒` : `${sec}秒`;
+    return m > 0 ? `${m}min${sec.toString().padStart(2, '0')}sec` : `${sec}sec`;
   };
 
   if (phase === 'idle') return null;
@@ -95,7 +95,7 @@ export const GenerationStatus: React.FC = () => {
           )}
           {totalWordCount > 0 && (
             <span className="text-xs text-gray-400">
-              {totalWordCount.toLocaleString()} 字
+              {totalWordCount.toLocaleString()} Character/Word
             </span>
           )}
         </span>
@@ -133,7 +133,7 @@ export const GenerationStatus: React.FC = () => {
             />
           </div>
           <div className="text-xs text-gray-500">
-            已完成 {l2CompletedSubtrees.length} 个子树
+            Completed {l2CompletedSubtrees.length} subtree(s)
           </div>
           {l2CompletedSubtrees.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
@@ -155,11 +155,11 @@ export const GenerationStatus: React.FC = () => {
           <div className="flex items-center gap-2">
             {l3CurrentLevel && (
               <span className="text-xs font-medium text-orange-600">
-                正在压缩: {IMPORTANCE_LABELS[l3CurrentLevel] || l3CurrentLevel}
+                Compressing: {IMPORTANCE_LABELS[l3CurrentLevel] || l3CurrentLevel}
               </span>
             )}
             <span className="text-xs text-gray-400">
-              已压缩 {l3CompressedCount} 个块
+              Compressed {l3CompressedCount} block(s)
             </span>
           </div>
           {l3CompletedLevels.length > 0 && (
@@ -186,7 +186,7 @@ export const GenerationStatus: React.FC = () => {
             }}
             className="ml-2 text-blue-600 hover:text-blue-800 underline"
           >
-            关闭
+            Close
           </button>
         </div>
       )}

@@ -25,7 +25,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       navigate('/courses');
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || '登录失败');
+      setError(error.response?.data?.error || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -38,7 +38,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       )}
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-          邮箱
+          Email
         </label>
         <input
           id="email"
@@ -47,12 +47,12 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           onChange={(e) => setEmail(e.target.value)}
           required
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="你的邮箱地址"
+          placeholder="Your email address"
         />
       </div>
       <div>
         <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-          密码
+          Password
         </label>
         <input
           id="password"
@@ -62,7 +62,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           required
           minLength={8}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="至少 8 个字符"
+          placeholder="At least 8 character(s)"
         />
       </div>
       <button
@@ -70,12 +70,12 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         disabled={loading}
         className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {loading ? '登录中...' : '登录'}
+        {loading ? 'Logging in...' : 'Login'}
       </button>
       <p className="text-center text-sm text-gray-600">
-        还没有账户？{' '}
+        No account yet?{' '}
         <Link to="/register" className="text-blue-600 hover:underline">
-          注册
+          Register
         </Link>
       </p>
     </form>

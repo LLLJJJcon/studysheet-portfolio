@@ -43,12 +43,12 @@ export function SettingsPage() {
         preferredModel: preferredModel || null,
       });
       await fetchUser();
-      setMessage('设置保存成功');
+      setMessage('Settings saved successfully');
       setOpenaiKey('');
       setAnthropicKey('');
       setGeminiKey('');
     } catch {
-      setMessage('保存失败');
+      setMessage('Save failed');
     } finally {
       setSaving(false);
     }
@@ -63,31 +63,31 @@ export function SettingsPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto py-8 px-4">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">设置</h1>
+          <h1 className="text-2xl font-bold">Settings</h1>
           <button
             onClick={() => navigate('/courses')}
             className="text-blue-600 hover:underline text-sm"
           >
-            ← 返回课程列表
+            ← Return to course list
           </button>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">账户</h2>
-          <p className="text-gray-600 text-sm">邮箱: {user?.email}</p>
+          <h2 className="text-lg font-semibold mb-4">Account</h2>
+          <p className="text-gray-600 text-sm">Email: {user?.email}</p>
           <button
             onClick={handleLogout}
             className="mt-4 text-red-600 hover:underline text-sm"
           >
-            退出登录
+            Log out
           </button>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold mb-4">LLM API 密钥</h2>
+          <h2 className="text-lg font-semibold mb-4">LLM API Keys</h2>
 
           {message && (
-            <div className={`p-3 rounded-md text-sm mb-4 ${message.includes('成功') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+            <div className={`p-3 rounded-md text-sm mb-4 ${message.includes('Success') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
               {message}
             </div>
           )}
@@ -95,20 +95,20 @@ export function SettingsPage() {
           <form onSubmit={handleSaveKeys} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                OpenAI API 密钥 {user?.apiKeys.openai && <span className="text-green-600">(已配置)</span>}
+                OpenAI API Key {user?.apiKeys.openai && <span className="text-green-600">(Configured)</span>}
               </label>
               <input
                 type="password"
                 value={openaiKey}
                 onChange={(e) => setOpenaiKey(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="输入新密钥以更新"
+                placeholder="Enter new key to update"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 OpenAI Base URL
-                <span className="text-gray-400 font-normal ml-1">(可选，用于兼容 API)</span>
+                <span className="text-gray-400 font-normal ml-1">(Optional, for API compatibility)</span>
               </label>
               <input
                 type="text"
@@ -118,36 +118,36 @@ export function SettingsPage() {
                 placeholder="https://api.openai.com/v1 (default)"
               />
               <p className="text-xs text-gray-400 mt-1">
-                支持 OpenAI 兼容 API: MiniMax, GLM, Qwen, DeepSeek 等
+                Support OpenAI-compatible APIs: MiniMax, GLM, Qwen, DeepSeek, etc.
               </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Anthropic API 密钥 {user?.apiKeys.anthropic && <span className="text-green-600">(已配置)</span>}
+                Anthropic API Key {user?.apiKeys.anthropic && <span className="text-green-600">(Configured)</span>}
               </label>
               <input
                 type="password"
                 value={anthropicKey}
                 onChange={(e) => setAnthropicKey(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="输入新密钥以更新"
+                placeholder="Enter new key to update"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Google Gemini API 密钥 {user?.apiKeys.gemini && <span className="text-green-600">(已配置)</span>}
+                Google Gemini API Key {user?.apiKeys.gemini && <span className="text-green-600">(Configured)</span>}
               </label>
               <input
                 type="password"
                 value={geminiKey}
                 onChange={(e) => setGeminiKey(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="输入新密钥以更新"
+                placeholder="Enter new key to update"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                首选服务商
+                Preferred Provider
               </label>
               <select
                 value={preferredProvider}
@@ -161,8 +161,8 @@ export function SettingsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                模型名称
-                <span className="text-gray-400 font-normal ml-1">(留空使用默认)</span>
+                Model Name
+                <span className="text-gray-400 font-normal ml-1">(Leave blank to use default)</span>
               </label>
               <input
                 type="text"
@@ -180,7 +180,7 @@ export function SettingsPage() {
               disabled={saving}
               className="py-2 px-6 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
-              {saving ? '保存中...' : '保存设置'}
+              {saving ? 'Saving...' : 'Save Settings'}
             </button>
           </form>
         </div>

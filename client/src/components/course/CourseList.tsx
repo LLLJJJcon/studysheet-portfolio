@@ -11,8 +11,8 @@ export function CourseList({ courses, onOpen, onDelete }: CourseListProps) {
   if (courses.length === 0) {
     return (
       <div className="text-center py-12 text-gray-400">
-        <p className="text-lg">还没有课程</p>
-        <p className="text-sm mt-1">创建你的第一个课程开始使用</p>
+        <p className="text-lg">No courses yet</p>
+        <p className="text-sm mt-1">Create your first course to get started</p>
       </div>
     );
   }

@@ -25,7 +25,7 @@ export const TreeNodeActions: React.FC<TreeNodeActionsProps> = ({
 
     const newNode: TreeNode = {
       nodeId: crypto.randomUUID(),
-      name: '新节点',
+      name: 'New node',
       children: [],
       importance: depth >= 2 ? 'Important' : undefined,
     };
@@ -41,7 +41,7 @@ export const TreeNodeActions: React.FC<TreeNodeActionsProps> = ({
       const lastChunkId = container && container.chunks.length > 0
         ? container.chunks[container.chunks.length - 1].nodeId
         : nodeId; // fallback: use section nodeId (addChunk handles this via parentNodeId fallback)
-      useCanvasStore.getState().addChunk(newNode.nodeId, '(空白)', newNode.importance, lastChunkId);
+      useCanvasStore.getState().addChunk(newNode.nodeId, '(Blank)', newNode.importance, lastChunkId);
     }
   }, [tree, nodeId, depth, setTree]);
 
@@ -50,7 +50,7 @@ export const TreeNodeActions: React.FC<TreeNodeActionsProps> = ({
 
     const newNode: TreeNode = {
       nodeId: crypto.randomUUID(),
-      name: '新节点',
+      name: 'New node',
       children: [],
       importance: depth >= 2 ? 'Important' : undefined,
     };
@@ -60,7 +60,7 @@ export const TreeNodeActions: React.FC<TreeNodeActionsProps> = ({
 
     // Sync: add empty placeholder block on canvas after this node
     if (newNode.importance) {
-      useCanvasStore.getState().addChunk(newNode.nodeId, '(空白)', newNode.importance, nodeId);
+      useCanvasStore.getState().addChunk(newNode.nodeId, '(Blank)', newNode.importance, nodeId);
     }
   }, [tree, nodeId, depth, setTree]);
 
@@ -92,7 +92,7 @@ export const TreeNodeActions: React.FC<TreeNodeActionsProps> = ({
       <button
         className="p-0.5 rounded hover:bg-blue-50 text-blue-500"
         onClick={(e) => { e.stopPropagation(); addChild(); }}
-        title="添加子节点"
+        title="Add child node"
       >
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -101,7 +101,7 @@ export const TreeNodeActions: React.FC<TreeNodeActionsProps> = ({
       <button
         className="p-0.5 rounded hover:bg-green-50 text-green-500"
         onClick={(e) => { e.stopPropagation(); addSibling(); }}
-        title="添加同级节点"
+        title="Add sibling node"
       >
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z" />
@@ -110,7 +110,7 @@ export const TreeNodeActions: React.FC<TreeNodeActionsProps> = ({
       <button
         className="p-0.5 rounded hover:bg-red-50 text-red-500"
         onClick={(e) => { e.stopPropagation(); deleteNode(); }}
-        title="删除节点"
+        title="Delete node"
       >
         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
