@@ -202,7 +202,10 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   );
 
   const handleSelectChunk = useCallback(
-    (nodeId: string) => setSelectedChunkId(nodeId),
+    (nodeId: string) => {
+      setSelectedChunkId(nodeId);
+      useTreeStore.getState().setSelectedNodeId(nodeId);
+    },
     [setSelectedChunkId],
   );
 

@@ -30,10 +30,16 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
   const storeSetSelected = useTreeStore((s) => s.setSelectedNodeId);
   const highlightedNodeId = useTreeStore((s) => s.highlightedNodeId);
   const setTree = useTreeStore((s) => s.setTree);
+  const setSelectedChunkId = useCanvasStore((s) => s.setSelectedChunkId);
 
   const tree = propTree ?? storeTree;
   const selectedNodeId = propSelectedId ?? storeSelectedId;
   const onSelect = propOnSelect ?? storeSetSelected;
+
+  const handleSelectNode = useCallback((nodeId: string) => {
+    onSelect?.(nodeId);
+    setSelectedChunkId(nodeId);
+  }, [onSelect, setSelectedChunkId]);
 
   const [dragOverNodeId, setDragOverNodeId] = useState<string | null>(null);
   const [dragNodeId, setDragNodeId] = useState<string | null>(null);
@@ -163,7 +169,7 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
                 left: x - NODE_WIDTH / 2,
                 top: y - NODE_HEIGHT / 2,
               }}
-              onClick={() => onSelect?.(node.nodeId)}
+              onClick={() => handleSelectNode(node.nodeId)}
               draggable={depth > 0}
               onDragStart={(e) => {
                 e.stopPropagation();

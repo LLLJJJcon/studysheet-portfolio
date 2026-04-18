@@ -147,7 +147,7 @@ export const useTreeStore = create<TreeState>()(
   }))
 );
 
-// Cross-store sync: when tree selectedNodeId changes, update canvas highlight
+// Cross-store sync between tree and canvas selection/highlight
 // This is set up in initStoreSync() to avoid circular imports
 export async function initTreeCanvasSync() {
   const { useCanvasStore } = await import('./canvasStore');
@@ -160,11 +160,13 @@ export async function initTreeCanvasSync() {
     }
   );
 
-  // Canvas selection → Tree highlight
+  // Canvas selection → Tree highlight + selection
   useCanvasStore.subscribe(
     (state: { selectedChunkId: string | null }) => state.selectedChunkId,
     (selectedChunkId: string | null) => {
-      useTreeStore.getState().setHighlightedNodeId(selectedChunkId);
+      const treeState = useTreeStore.getState();
+      treeState.setHighlightedNodeId(selectedChunkId);
+      treeState.setSelectedNodeId(selectedChunkId);
     }
   );
 }
