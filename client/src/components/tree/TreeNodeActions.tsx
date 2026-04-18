@@ -2,7 +2,6 @@ import React, { useCallback } from 'react';
 import { useTreeStore } from '../../stores/treeStore';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { TreeNode } from '../../types/tree';
-import { v4 as uuidv4 } from 'uuid';
 
 // Collect all nodeIds in a subtree (for cascade delete)
 function collectNodeIds(node: TreeNode): string[] {
@@ -25,7 +24,7 @@ export const TreeNodeActions: React.FC<TreeNodeActionsProps> = ({
     if (!tree) return;
 
     const newNode: TreeNode = {
-      nodeId: uuidv4(),
+      nodeId: crypto.randomUUID(),
       name: '新节点',
       children: [],
       importance: depth >= 2 ? 'Important' : undefined,
@@ -50,7 +49,7 @@ export const TreeNodeActions: React.FC<TreeNodeActionsProps> = ({
     if (!tree) return;
 
     const newNode: TreeNode = {
-      nodeId: uuidv4(),
+      nodeId: crypto.randomUUID(),
       name: '新节点',
       children: [],
       importance: depth >= 2 ? 'Important' : undefined,

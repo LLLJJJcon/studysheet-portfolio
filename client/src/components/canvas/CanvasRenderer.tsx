@@ -4,7 +4,6 @@ import { useTreeStore, findParentInTree } from '../../stores/treeStore';
 import { TreeNode } from '../../types/tree';
 import { ChunkComponent } from './Chunk';
 import { MM_TO_PX } from '../../utils/constants';
-import { v4 as uuidv4 } from 'uuid';
 
 const PAGE_GAP = 20; // must match LayoutCanvas
 
@@ -172,7 +171,7 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
       const result = await generationApi.uploadImage(courseId, file);
       if (!result) return;
 
-      const newNodeId = uuidv4();
+      const newNodeId = crypto.randomUUID();
       addChunk(newNodeId, `![image](${result.url})`, 'Awareness', afterNodeId);
 
       const { tree, setTree } = useTreeStore.getState();
