@@ -1,8 +1,10 @@
 import { useState, useCallback, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 import { TreeNode as TreeNodeType } from '../../types/tree';
 import { useTreeStore } from '../../stores/treeStore';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { TreeNodeActions } from './TreeNodeActions';
+import { generationApi, CmdKChange } from '../../services/generationApi';
 
 interface ContentTreeProps {
   tree?: TreeNodeType | null;
@@ -29,6 +31,7 @@ const V_GAP = 26;
 const PADDING = 20;
 
 export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, onSelect: propOnSelect, loading }: ContentTreeProps) {
+  const { id: courseId } = useParams<{ id: string }>();
   const storeTree = useTreeStore((s) => s.tree);
   const storeSelectedId = useTreeStore((s) => s.selectedNodeId);
   const storeSetSelected = useTreeStore((s) => s.setSelectedNodeId);
@@ -59,6 +62,10 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
   const [dragOverNodeId, setDragOverNodeId] = useState<string | null>(null);
   const [dragNodeId, setDragNodeId] = useState<string | null>(null);
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(() => new Set());
+  const [aiBusyNodeId, setAiBusyNodeId] = useState<string | null>(null);
+  const [aiEditorNode, setAiEditorNode] = useState<TreeNodeType | null>(null);
+  const [aiInstruction, setAiInstruction] = useState('');
+  const [aiNotice, setAiNotice] = useState<{ type: 'error' | 'info'; message: string } | null>(null);
 
   const chunkTextByNodeId = useMemo(() => {
     const map = new Map<string, string>();
@@ -99,6 +106,176 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
       return next;
     });
   }, []);
+
+  const applyCmdKChanges = useCallback((changes: CmdKChange[]) => {
+    if (!changes.length) return false;
+
+    let workingTree = useTreeStore.getState().tree;
+    if (!workingTree) return false;
+
+    const canvasApi = useCanvasStore.getState();
+
+    for (const change of changes) {
+      if (change.type === 'update_content' && typeof change.newContent === 'string') {
+        canvasApi.updateChunkContent(change.nodeId, change.newContent);
+        continue;
+      }
+
+      if (change.type === 'update_importance' && change.newImportance) {
+        const newImportance = change.newImportance as TreeNodeType['importance'];
+        workingTree = updateNodeInTree(workingTree, change.nodeId, (node) => ({
+          ...node,
+          importance: newImportance,
+        }));
+
+        useCanvasStore.setState((state) => ({
+          containers: state.containers.map((container) => ({
+            ...container,
+            chunks: container.chunks.map((chunk) =>
+              chunk.nodeId === change.nodeId
+                ? { ...chunk, importance: change.newImportance }
+                : chunk
+            ),
+          })),
+        }));
+        continue;
+      }
+
+      if (change.type === 'delete_node') {
+        const targetNode = findNode(workingTree, change.nodeId);
+        if (!targetNode) continue;
+        const idsToDelete = collectNodeIds(targetNode);
+        for (const id of idsToDelete) {
+          canvasApi.deleteChunk(id);
+        }
+        const updated = removeNode(workingTree, change.nodeId);
+        if (updated) workingTree = updated;
+        continue;
+      }
+
+      if (change.type === 'add_node' && change.parentNodeId) {
+        const newNodeId = change.nodeId || crypto.randomUUID();
+        const newImportance = (change.importance || 'Important') as TreeNodeType['importance'];
+        const newNode: TreeNodeType = {
+          nodeId: newNodeId,
+          name: change.name || 'New node',
+          importance: newImportance,
+          children: [],
+        };
+
+        workingTree = insertChild(workingTree, change.parentNodeId, newNode);
+        canvasApi.addChunk(
+          newNodeId,
+          change.newContent || '(Blank)',
+          newImportance || 'Important',
+          change.parentNodeId
+        );
+      }
+    }
+
+    setTree(workingTree);
+    return true;
+  }, [setTree]);
+
+  const openAiEditor = useCallback((node: TreeNodeType) => {
+    const existingText = (chunkTextByNodeId.get(node.nodeId) || '').trim();
+    const defaultInstruction = existingText
+      ? 'Improve and refine this block while keeping it concise and exam-focused.'
+      : `Generate concise content for this node: ${node.name}`;
+
+    setAiNotice(null);
+    setAiEditorNode(node);
+    setAiInstruction(defaultInstruction);
+  }, [chunkTextByNodeId]);
+
+  const closeAiEditor = useCallback(() => {
+    if (aiBusyNodeId) return;
+    setAiEditorNode(null);
+    setAiInstruction('');
+  }, [aiBusyNodeId]);
+
+  const handleAiAssistNode = useCallback(async () => {
+    if (!courseId || aiBusyNodeId || !aiEditorNode) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setAiNotice({ type: 'error', message: 'Please log in again to use AI editing.' });
+      return;
+    }
+
+    const trimmedInstruction = aiInstruction.trim();
+    if (!trimmedInstruction) {
+      setAiNotice({ type: 'error', message: 'Please enter an instruction.' });
+      return;
+    }
+
+    const existingText = (chunkTextByNodeId.get(aiEditorNode.nodeId) || '').trim();
+
+    const scopedInstruction = [
+      `Focus only on nodeId "${aiEditorNode.nodeId}" (node name: "${aiEditorNode.name}").`,
+      existingText
+        ? 'Edit and improve the content of this block based on the instruction below.'
+        : 'Generate content for this block based on the instruction below.',
+      `Instruction: ${trimmedInstruction}`,
+    ].join('\n');
+
+    setAiNotice(null);
+    setAiBusyNodeId(aiEditorNode.nodeId);
+    try {
+      let cmdkError = '';
+      let proposedChanges: CmdKChange[] = [];
+      await generationApi.sendCmdK(courseId, scopedInstruction, token, {
+        onChanges: (changes) => {
+          proposedChanges = changes;
+        },
+        onError: (message) => {
+          cmdkError = message || 'AI update failed';
+        },
+      });
+
+      if (cmdkError) {
+        throw new Error(cmdkError);
+      }
+
+      const applied = applyCmdKChanges(proposedChanges);
+      if (applied) {
+        setAiNotice({ type: 'info', message: 'AI changes applied to this node.' });
+        setAiEditorNode(null);
+        setAiInstruction('');
+        return;
+      }
+
+      const [updatedTree, updatedLayout] = await Promise.all([
+        generationApi.fetchContentTree(courseId),
+        generationApi.fetchLayout(courseId),
+      ]);
+
+      if (updatedTree) {
+        setTree(updatedTree as TreeNodeType);
+      }
+      if (updatedLayout) {
+        useCanvasStore.getState().setLayout(
+          updatedLayout.containers as any[],
+          updatedLayout.fontSize,
+          updatedLayout.lineHeight
+        );
+      }
+
+      if (!updatedTree && !updatedLayout) {
+        setAiNotice({ type: 'info', message: 'AI finished but returned no applicable changes for this node.' });
+      } else {
+        setAiNotice({ type: 'info', message: 'AI update completed.' });
+      }
+
+      setAiEditorNode(null);
+      setAiInstruction('');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'AI update failed';
+      setAiNotice({ type: 'error', message });
+    } finally {
+      setAiBusyNodeId(null);
+    }
+  }, [aiBusyNodeId, aiEditorNode, aiInstruction, applyCmdKChanges, chunkTextByNodeId, courseId, setTree]);
 
   const handleDragEnd = useCallback(() => {
     if (dragNodeId && dragOverNodeId && dragNodeId !== dragOverNodeId && tree) {
@@ -147,7 +324,19 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
   }
 
   return (
-    <div className="py-2 overflow-auto">
+    <div className="py-2 overflow-auto relative">
+      {aiNotice && (
+        <div
+          className={`mb-2 rounded border px-2 py-1 text-xs ${
+            aiNotice.type === 'error'
+              ? 'border-red-200 bg-red-50 text-red-700'
+              : 'border-blue-200 bg-blue-50 text-blue-700'
+          }`}
+        >
+          {aiNotice.message}
+        </div>
+      )}
+
       <div
         className="relative"
         style={{
@@ -241,6 +430,18 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
                   >
                     {isExpanded ? '−' : '+'}
                   </button>
+                  <button
+                    type="button"
+                    className="text-[10px] px-1 py-0.5 rounded border border-teal-200 text-teal-700 hover:bg-teal-50 disabled:opacity-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openAiEditor(node);
+                    }}
+                    disabled={aiBusyNodeId !== null}
+                    title="AI generate/edit this node"
+                  >
+                    {aiBusyNodeId === node.nodeId ? 'AI...' : 'AI'}
+                  </button>
                   <TreeNodeActions nodeId={node.nodeId} depth={depth} />
                 </div>
               </div>
@@ -266,6 +467,67 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
           );
         })}
       </div>
+
+      {aiEditorNode && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/25"
+            onClick={closeAiEditor}
+          />
+
+          <div className="relative z-50 w-full max-w-xl mx-4 rounded-xl border border-gray-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">AI edit this node</p>
+                <p className="text-xs text-gray-500 truncate" title={aiEditorNode.name}>{aiEditorNode.name}</p>
+              </div>
+              <button
+                type="button"
+                className="text-gray-400 hover:text-gray-600"
+                onClick={closeAiEditor}
+                disabled={aiBusyNodeId !== null}
+                title="Close"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="px-4 py-3">
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Instruction
+              </label>
+              <textarea
+                value={aiInstruction}
+                onChange={(e) => setAiInstruction(e.target.value)}
+                className="w-full min-h-28 resize-y rounded border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+                placeholder="Describe what to generate or edit for this node"
+                disabled={aiBusyNodeId !== null}
+              />
+            </div>
+
+            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-end gap-2 bg-gray-50 rounded-b-xl">
+              <button
+                type="button"
+                onClick={closeAiEditor}
+                className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded hover:bg-gray-100 disabled:opacity-50"
+                disabled={aiBusyNodeId !== null}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAiAssistNode}
+                className="px-3 py-1.5 text-xs font-medium text-white bg-teal-600 rounded hover:bg-teal-700 disabled:opacity-50"
+                disabled={aiBusyNodeId !== null}
+              >
+                {aiBusyNodeId === aiEditorNode.nodeId ? 'Applying AI...' : 'Apply AI'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -385,6 +647,22 @@ function findNode(tree: TreeNodeType, nodeId: string): TreeNodeType | null {
     if (found) return found;
   }
   return null;
+}
+
+function updateNodeInTree(
+  tree: TreeNodeType,
+  nodeId: string,
+  updater: (node: TreeNodeType) => TreeNodeType
+): TreeNodeType {
+  if (tree.nodeId === nodeId) return updater(tree);
+  return {
+    ...tree,
+    children: tree.children.map((child) => updateNodeInTree(child, nodeId, updater)),
+  };
+}
+
+function collectNodeIds(node: TreeNodeType): string[] {
+  return [node.nodeId, ...node.children.flatMap(collectNodeIds)];
 }
 
 function removeNode(tree: TreeNodeType, nodeId: string): TreeNodeType | null {
