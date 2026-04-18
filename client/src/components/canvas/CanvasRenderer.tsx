@@ -35,8 +35,10 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   const containers = useCanvasStore((s) => s.containers);
   const fontSize = useCanvasStore((s) => s.fontSize);
   const selectedChunkId = useCanvasStore((s) => s.selectedChunkId);
+  const selectedContainerId = useCanvasStore((s) => s.selectedContainerId);
   const highlightedChunkId = useCanvasStore((s) => s.highlightedChunkId);
   const setSelectedChunkId = useCanvasStore((s) => s.setSelectedChunkId);
+  const setSelectedContainerId = useCanvasStore((s) => s.setSelectedContainerId);
   const deleteChunk = useCanvasStore((s) => s.deleteChunk);
   const moveChunk = useCanvasStore((s) => s.moveChunk);
   const addChunk = useCanvasStore((s) => s.addChunk);
@@ -204,9 +206,19 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   const handleSelectChunk = useCallback(
     (nodeId: string) => {
       setSelectedChunkId(nodeId);
+      setSelectedContainerId(null);
       useTreeStore.getState().setSelectedNodeId(nodeId);
     },
-    [setSelectedChunkId],
+    [setSelectedChunkId, setSelectedContainerId],
+  );
+
+  const handleSelectSectionTitle = useCallback(
+    (sectionId: string) => {
+      setSelectedContainerId(sectionId);
+      setSelectedChunkId(null);
+      useTreeStore.getState().setSelectedNodeId(sectionId);
+    },
+    [setSelectedContainerId, setSelectedChunkId],
   );
 
   const handleDeleteChunk = useCallback(
@@ -425,11 +437,18 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
                 const item = itemMap.get(itemId);
                 if (!item) return null;
                 if (item.type === 'title') {
+                  const isTitleSelected = selectedContainerId === item.sectionId;
                   return (
                     <div
                       key={item.id}
-                      className="font-semibold text-gray-500 truncate"
+                      className={`font-semibold truncate cursor-pointer rounded px-1 transition-colors ${
+                        isTitleSelected
+                          ? 'text-blue-700 bg-blue-50 ring-1 ring-blue-300'
+                          : 'text-gray-500 hover:bg-gray-100'
+                      }`}
                       style={{ fontSize: '9px', lineHeight: '14px', marginBottom: 2 }}
+                      onClick={() => handleSelectSectionTitle(item.sectionId)}
+                      title={item.title}
                     >
                       {item.title}
                     </div>
