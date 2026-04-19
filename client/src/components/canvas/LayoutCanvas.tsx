@@ -74,7 +74,7 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
     >
       <div
         ref={containerRef}
-        className="w-full h-full overflow-y-auto overflow-x-hidden"
+        className="w-full h-full overflow-y-auto overflow-x-hidden pt-6"
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
