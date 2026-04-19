@@ -324,7 +324,7 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
   }
 
   return (
-    <div className="py-2 overflow-auto relative">
+    <div className="py-2 relative">
       {aiNotice && (
         <div
           className={`mb-2 rounded border px-2 py-1 text-xs ${

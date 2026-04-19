@@ -585,7 +585,7 @@ body {
       )}
 
       {/* Tree */}
-      <div className="flex-1 overflow-auto px-4 py-2">
+      <div className="flex-1 overflow-y-auto overflow-x-scroll px-4 py-2">
         <ContentTree />
       </div>
     </div>
