@@ -15,6 +15,8 @@ import { chunkService } from '../services/chunkService';
 import { calculateFontSize, getLineHeight } from '../utils/fontSizeCalc';
 import { initSSE, sendSSE, endSSE, sendSSEError } from '../utils/sseHelper';
 import { fileConversionService } from '../services/fileConversionService';
+import { runChunkChatPipeline } from '../services/chunkChatService';
+import { chunkChatSchema } from '../middleware/validation';
 
 export const generationController = {
   async startGeneration(req: AuthRequest, res: Response): Promise<void> {
@@ -496,6 +498,44 @@ export const generationController = {
       res.json({ url, filename: file.originalname });
     } catch {
       res.status(500).json({ error: 'Failed to upload image' });
+    }
+  },
+  async chunkChat(req: AuthRequest, res: Response): Promise<void> {
+    const courseId = req.params.id;
+    const nodeId = req.params.nodeId;
+    const userId = req.user!.userId;
+
+    const parsed = chunkChatSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid request', details: parsed.error.issues });
+      return;
+    }
+
+    const { messages, chunkContext } = parsed.data;
+
+    initSSE(res);
+
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        sendSSEError(res, 'User not found', false);
+        return;
+      }
+
+      const course = await Course.findOne({ _id: courseId, userId });
+      if (!course) {
+        sendSSEError(res, 'Course not found', false);
+        return;
+      }
+
+      const provider = createProvider(user);
+
+      await runChunkChatPipeline(res, provider, courseId, nodeId, messages, chunkContext);
+
+      endSSE(res);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'An error occurred';
+      sendSSEError(res, message, false);
     }
   },
 };

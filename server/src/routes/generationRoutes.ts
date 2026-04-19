@@ -15,6 +15,7 @@ router.post('/:id/cmd-k', generationController.cmdK);
 router.post('/:id/optimize-layout', generationController.optimizeLayout);
 router.post('/:id/relayout', generationController.relayout);
 router.patch('/:id/chunks/:nodeId', generationController.updateChunk);
+router.post('/:id/chunks/:nodeId/chat', generationController.chunkChat);
 router.put('/:id/content-tree', generationController.updateContentTree);
 router.get('/:id/source-file/:fileId', generationController.getSourceFile);
 router.get('/:id/files/:fileId/raw', generationController.getRawFile);

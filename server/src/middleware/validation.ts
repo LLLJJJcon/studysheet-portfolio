@@ -49,3 +49,23 @@ export const pageConfigSchema = z.object({
 export const generateRequestSchema = z.object({
   courseId: z.string(),
 });
+
+// Chunk chat request
+export const chunkChatSchema = z.object({
+  messages: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string().min(1).max(5000),
+  })).max(20),
+  chunkContext: z.object({
+    content: z.string(),
+    name: z.string(),
+    importance: z.string(),
+    treePath: z.string(),
+    wordCount: z.number(),
+    pageWordLimit: z.number(),
+    chunkIndex: z.array(z.object({
+      nodeId: z.string(),
+      label: z.string(),
+    })).max(200),
+  }),
+});
