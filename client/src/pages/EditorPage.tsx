@@ -17,6 +17,7 @@ import { useCanvasStore } from '../stores/canvasStore';
 import { courseApi } from '../services/courseApi';
 import { generationApi } from '../services/generationApi';
 import { useAutoSave } from '../hooks/useAutoSave';
+import { ChunkAIChat } from '../components/editor/ChunkAIChat';
 import { MM_TO_PX } from '../utils/constants';
 
 export const EditorPage: React.FC = () => {
@@ -632,12 +633,15 @@ body {
     <div className="h-screen w-screen">
       <DualView leftPanel={leftPanel} rightPanel={rightPanel} />
       {id && (
-        <VersionPanel
-          courseId={id}
-          isOpen={versionPanelOpen}
-          onClose={() => setVersionPanelOpen(false)}
-          onRestored={handleVersionRestored}
-        />
+        <>
+          <VersionPanel
+            courseId={id}
+            isOpen={versionPanelOpen}
+            onClose={() => setVersionPanelOpen(false)}
+            onRestored={handleVersionRestored}
+          />
+          <ChunkAIChat courseId={id} />
+        </>
       )}
     </div>
   );
