@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState, useRef, useLayoutEffect } from 'react';
 import { useCanvasStore, ChunkPosition } from '../../stores/canvasStore';
-import { useTreeStore, findParentInTree } from '../../stores/treeStore';
+import { useTreeStore, findNodeInTree, findParentInTree } from '../../stores/treeStore';
 import { TreeNode } from '../../types/tree';
 import { ChunkComponent } from './Chunk';
 import { MM_TO_PX } from '../../utils/constants';
@@ -24,6 +24,10 @@ type OrderedItem = {
   chunk?: ChunkPosition;
 };
 
+function collectSubtreeNodeIds(node: TreeNode): string[] {
+  return [node.nodeId, ...node.children.flatMap(collectSubtreeNodeIds)];
+}
+
 export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   pageWidthPx,
   pageHeightPx,
@@ -40,8 +44,9 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   const setSelectedChunkId = useCanvasStore((s) => s.setSelectedChunkId);
   const setSelectedContainerId = useCanvasStore((s) => s.setSelectedContainerId);
   const deleteChunk = useCanvasStore((s) => s.deleteChunk);
-  const moveChunk = useCanvasStore((s) => s.moveChunk);
+  const moveChunkSubtree = useCanvasStore((s) => s.moveChunkSubtree);
   const addChunk = useCanvasStore((s) => s.addChunk);
+  const tree = useTreeStore((s) => s.tree);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragPosition, setDragPosition] = useState<'before' | 'after' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -244,7 +249,12 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
       setDragOverId(null);
       setDragPosition(null);
       if (draggedId !== targetId) {
-        moveChunk(draggedId, targetId, pos);
+        const draggedNode = tree ? findNodeInTree(tree, draggedId) : null;
+        const subtreeIds = draggedNode ? collectSubtreeNodeIds(draggedNode) : [draggedId];
+
+        if (subtreeIds.includes(targetId)) return;
+
+        moveChunkSubtree(draggedId, subtreeIds, targetId, pos);
         const state = useCanvasStore.getState();
         let targetParentNodeId: string | null = null;
         for (const c of state.containers) {
@@ -258,7 +268,7 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
         }
       }
     },
-    [moveChunk],
+    [moveChunkSubtree, tree],
   );
 
   /* --- Render a single chunk item with optional insert-gap --- */

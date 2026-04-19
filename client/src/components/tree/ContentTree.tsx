@@ -296,7 +296,11 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
           setTree(updated);
 
           // Sync canvas atomically: preserve chunk content/metadata while changing parent container.
-          useCanvasStore.getState().moveChunkToParentContainer(dragNodeId, dragOverNodeId);
+          useCanvasStore.getState().moveChunkToParentContainer(
+            dragNodeId,
+            dragOverNodeId,
+            collectNodeIds(draggedNode)
+          );
         }
       }
     }

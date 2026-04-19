@@ -49,7 +49,13 @@ interface CanvasState {
   moveChunkToStaging: (nodeId: string) => void;
   swapChunks: (nodeIdA: string, nodeIdB: string) => void;
   moveChunk: (draggedNodeId: string, targetNodeId: string, position: 'before' | 'after') => void;
-  moveChunkToParentContainer: (nodeId: string, targetParentNodeId: string) => void;
+  moveChunkSubtree: (
+    draggedNodeId: string,
+    subtreeNodeIds: string[],
+    targetNodeId: string,
+    position: 'before' | 'after'
+  ) => void;
+  moveChunkToParentContainer: (nodeId: string, targetParentNodeId: string, subtreeNodeIds?: string[]) => void;
   addChunk: (nodeId: string, content: string, importance: string, afterNodeId?: string) => void;
 }
 
@@ -241,34 +247,90 @@ export const useCanvasStore = create<CanvasState>()(subscribeWithSelector((set) 
       return { containers: newContainers };
     }),
 
-  moveChunkToParentContainer: (nodeId, targetParentNodeId) =>
+  moveChunkSubtree: (draggedNodeId, subtreeNodeIds, targetNodeId, position) =>
     set((state) => {
-      let sourceContainerIdx = -1;
-      let sourceChunkIdx = -1;
-      let movedChunk: ChunkPosition | null = null;
+      const subtreeIdSet = new Set(subtreeNodeIds);
+      if (subtreeIdSet.has(targetNodeId)) return {};
 
-      for (let ci = 0; ci < state.containers.length; ci++) {
-        const chunkIdx = state.containers[ci].chunks.findIndex((ch) => ch.nodeId === nodeId);
-        if (chunkIdx !== -1) {
-          sourceContainerIdx = ci;
-          sourceChunkIdx = chunkIdx;
-          movedChunk = { ...state.containers[ci].chunks[chunkIdx] };
+      const chunkById = new Map<string, ChunkPosition>();
+      for (const container of state.containers) {
+        for (const chunk of container.chunks) {
+          chunkById.set(chunk.nodeId, chunk);
+        }
+      }
+
+      const movedChunks = subtreeNodeIds
+        .map((id) => chunkById.get(id))
+        .filter((chunk): chunk is ChunkPosition => Boolean(chunk))
+        .map((chunk) => ({ ...chunk }));
+
+      if (movedChunks.length === 0) {
+        const fallback = chunkById.get(draggedNodeId);
+        if (!fallback) return {};
+        movedChunks.push({ ...fallback });
+      }
+
+      const newContainers = state.containers.map((container) => ({
+        ...container,
+        chunks: container.chunks.filter((chunk) => !subtreeIdSet.has(chunk.nodeId)),
+      }));
+
+      let targetContainerIdx = -1;
+      let targetChunkIdx = -1;
+      for (let ci = 0; ci < newContainers.length; ci++) {
+        const idx = newContainers[ci].chunks.findIndex((ch) => ch.nodeId === targetNodeId);
+        if (idx !== -1) {
+          targetContainerIdx = ci;
+          targetChunkIdx = idx;
           break;
         }
       }
 
-      if (!movedChunk) return {};
+      if (targetContainerIdx === -1 || targetChunkIdx === -1) return {};
+
+      const insertIdx = position === 'before' ? targetChunkIdx : targetChunkIdx + 1;
+      const targetChunks = [...newContainers[targetContainerIdx].chunks];
+      targetChunks.splice(insertIdx, 0, ...movedChunks);
+      newContainers[targetContainerIdx] = {
+        ...newContainers[targetContainerIdx],
+        chunks: targetChunks,
+      };
+
+      return { containers: newContainers };
+    }),
+
+  moveChunkToParentContainer: (nodeId, targetParentNodeId, subtreeNodeIds) =>
+    set((state) => {
+      const orderedIds = subtreeNodeIds && subtreeNodeIds.length > 0 ? subtreeNodeIds : [nodeId];
+      const idSet = new Set(orderedIds);
+
+      const chunkById = new Map<string, ChunkPosition>();
+      for (const container of state.containers) {
+        for (const chunk of container.chunks) {
+          chunkById.set(chunk.nodeId, chunk);
+        }
+      }
+
+      const movedChunks = orderedIds
+        .map((id) => chunkById.get(id))
+        .filter((chunk): chunk is ChunkPosition => Boolean(chunk))
+        .map((chunk) => ({ ...chunk }));
+
+      if (movedChunks.length === 0) return {};
 
       const targetContainerIdx = state.containers.findIndex(
         (c) => c.parentNodeId === targetParentNodeId && c.page >= 0
       );
 
       if (targetContainerIdx === -1) return {};
-      if (sourceContainerIdx === targetContainerIdx) return {};
 
-      const newContainers = state.containers.map((c) => ({ ...c, chunks: [...c.chunks] }));
-      newContainers[sourceContainerIdx].chunks.splice(sourceChunkIdx, 1);
-      newContainers[targetContainerIdx].chunks.push(movedChunk);
+      const newContainers = state.containers.map((container, index) => {
+        const next = container.chunks.filter((chunk) => !idSet.has(chunk.nodeId));
+        if (index === targetContainerIdx) {
+          return { ...container, chunks: [...next, ...movedChunks] };
+        }
+        return { ...container, chunks: next };
+      });
 
       return { containers: newContainers };
     }),
