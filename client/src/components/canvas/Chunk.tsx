@@ -254,28 +254,30 @@ export const ChunkComponent: React.FC<ChunkProps> = ({
     >
       <div className="px-0.5 py-px">
         {isEditing ? (
-          <textarea
-            ref={textareaRef}
-            className="w-full border-none outline-none resize-none bg-transparent text-gray-800"
-            style={{ fontSize: `${fontSize}pt`, lineHeight: 1.35, minHeight: '40px' }}
-            value={editText}
-            onChange={handleEditChange}
-            onBlur={handleEditDone}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') { setIsEditing(false); setEditText(content); }
-              e.stopPropagation();
-            }}
-          />
-          <button
-            className="text-xs text-purple-500 hover:text-purple-700 mt-1 px-1"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleAskAI();
-            }}
-          >
-            Ask AI
-          </button>
+          <>
+            <textarea
+              ref={textareaRef}
+              className="w-full border-none outline-none resize-none bg-transparent text-gray-800"
+              style={{ fontSize: `${fontSize}pt`, lineHeight: 1.35, minHeight: '40px' }}
+              value={editText}
+              onChange={handleEditChange}
+              onBlur={handleEditDone}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') { setIsEditing(false); setEditText(content); }
+                e.stopPropagation();
+              }}
+            />
+            <button
+              className="text-xs text-purple-500 hover:text-purple-700 mt-1 px-1"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleAskAI();
+              }}
+            >
+              Ask AI
+            </button>
+          </>
         ) : (
           (() => {
             const imgMatch = content.match(/^!\[.*?\]\((.*?)\)$/);
