@@ -24,8 +24,20 @@ AI-powered exam cheatsheet generator. Upload course materials → AI builds an e
 cd client && npm install
 cd ../server && npm install
 
-# Start MongoDB (if not using Docker)
-mongod
+# Install MongoDB Community Server (one-time)
+# macOS (Homebrew):
+brew tap mongodb/brew && brew install mongodb-community@7.0
+# Ubuntu/Debian: follow the official MongoDB apt repo setup, then install mongodb-org
+# Windows (PowerShell + winget):
+winget install MongoDB.Server
+
+# Start MongoDB
+# macOS (Homebrew service):
+brew services start mongodb-community@7.0
+# Linux (systemd):
+sudo systemctl start mongod
+# Windows (as service):
+net start MongoDB
 
 # Start server
 cd server && npm run dev
