@@ -70,36 +70,40 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
 
   return (
     <div
-      ref={containerRef}
       className="relative w-full h-full overflow-hidden bg-gray-100"
-      onWheel={handleWheel}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
     >
       <div
-        className="absolute origin-top-left"
-        style={{
-          transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
-          width: totalWidthPx,
-          height: totalHeightPx,
-        }}
+        ref={containerRef}
+        className="w-full h-full overflow-y-auto overflow-x-hidden"
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       >
-        {Array.from({ length: pages }, (_, i) => (
-          <PageBoundary
-            key={i}
-            pageIndex={i}
-            widthPx={pageWidthPx}
-            heightPx={pageHeightPx}
-            pageGapPx={PAGE_GAP}
-          />
-        ))}
-        {children}
+        <div
+          className="origin-top-left"
+          style={{
+            transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+            width: totalWidthPx,
+            height: totalHeightPx,
+          }}
+        >
+          {Array.from({ length: pages }, (_, i) => (
+            <PageBoundary
+              key={i}
+              pageIndex={i}
+              widthPx={pageWidthPx}
+              heightPx={pageHeightPx}
+              pageGapPx={PAGE_GAP}
+            />
+          ))}
+          {children}
+        </div>
       </div>
 
       {/* Zoom indicator */}
-      <div className="absolute bottom-3 right-3 bg-white/80 px-2 py-1 rounded text-xs text-gray-500">
+      <div className="absolute bottom-3 right-3 z-10 bg-white/80 px-2 py-1 rounded text-xs text-gray-500 pointer-events-none">
         {Math.round(scale * 100)}%
       </div>
     </div>
