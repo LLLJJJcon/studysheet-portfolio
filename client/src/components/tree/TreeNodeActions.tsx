@@ -35,13 +35,25 @@ export const TreeNodeActions: React.FC<TreeNodeActionsProps> = ({
 
     // Sync: add empty placeholder block on canvas
     if (newNode.importance) {
-      // Find the last chunk in this section's container to insert after
       const containers = useCanvasStore.getState().containers;
-      const container = containers.find((c) => c.parentNodeId === nodeId);
-      const lastChunkId = container && container.chunks.length > 0
-        ? container.chunks[container.chunks.length - 1].nodeId
-        : nodeId; // fallback: use section nodeId (addChunk handles this via parentNodeId fallback)
-      useCanvasStore.getState().addChunk(newNode.nodeId, '(Blank)', newNode.importance, lastChunkId);
+      const parentNode = findNode(tree, nodeId);
+
+      // Insert after the last rendered chunk in the parent's current subtree.
+      // This keeps children visually attached to the parent and lets pagination shift following blocks.
+      const subtreeIds = parentNode ? collectNodeIds(parentNode) : [nodeId];
+      const chunkIds = new Set(containers.flatMap((c) => c.chunks.map((ch) => ch.nodeId)));
+      const anchorId = [...subtreeIds].reverse().find((id) => chunkIds.has(id));
+
+      if (anchorId) {
+        useCanvasStore.getState().addChunk(newNode.nodeId, '(Blank)', newNode.importance, anchorId);
+      } else {
+        // Parent is a section/container with no chunk yet: append at section end.
+        const container = containers.find((c) => c.parentNodeId === nodeId);
+        const lastChunkId = container && container.chunks.length > 0
+          ? container.chunks[container.chunks.length - 1].nodeId
+          : nodeId;
+        useCanvasStore.getState().addChunk(newNode.nodeId, '(Blank)', newNode.importance, lastChunkId);
+      }
     }
   }, [tree, nodeId, depth, setTree]);
 
@@ -68,14 +80,6 @@ export const TreeNodeActions: React.FC<TreeNodeActionsProps> = ({
     if (!tree) return;
 
     // Collect all nodeIds in the subtree being deleted
-    const findNode = (node: TreeNode, targetId: string): TreeNode | null => {
-      if (node.nodeId === targetId) return node;
-      for (const child of node.children) {
-        const found = findNode(child, targetId);
-        if (found) return found;
-      }
-      return null;
-    };
     const targetNode = findNode(tree, nodeId);
     if (targetNode) {
       const idsToDelete = collectNodeIds(targetNode);
@@ -148,6 +152,15 @@ function insertSibling(tree: TreeNode, siblingId: string, newNode: TreeNode): Tr
     ...tree,
     children: tree.children.map((child) => insertSibling(child, siblingId, newNode)),
   };
+}
+
+function findNode(node: TreeNode, targetId: string): TreeNode | null {
+  if (node.nodeId === targetId) return node;
+  for (const child of node.children) {
+    const found = findNode(child, targetId);
+    if (found) return found;
+  }
+  return null;
 }
 
 function removeNode(tree: TreeNode, nodeId: string): TreeNode | null {
