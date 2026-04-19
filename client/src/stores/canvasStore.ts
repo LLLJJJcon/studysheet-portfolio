@@ -43,6 +43,7 @@ interface CanvasState {
 
   updateChunkPosition: (nodeId: string, x: number, y: number) => void;
   updateChunkSize: (nodeId: string, width: number, height: number, dx: number, dy: number) => void;
+  setChunkBoxSize: (nodeId: string, width?: number, height?: number) => void;
   updateChunkContent: (nodeId: string, content: string) => void;
   deleteChunk: (nodeId: string) => void;
   moveChunkToStaging: (nodeId: string) => void;
@@ -87,6 +88,22 @@ export const useCanvasStore = create<CanvasState>()(subscribeWithSelector((set) 
           chunk.nodeId === nodeId
             ? { ...chunk, width, height, x: chunk.x + dx, y: chunk.y + dy }
             : chunk
+        ),
+      })),
+    })),
+
+    setChunkBoxSize: (nodeId, width, height) =>
+    set((state) => ({
+      containers: state.containers.map((container) => ({
+        ...container,
+        chunks: container.chunks.map((chunk) =>
+            chunk.nodeId === nodeId
+              ? {
+                  ...chunk,
+                  ...(width !== undefined ? { width } : {}),
+                  ...(height !== undefined ? { height } : {}),
+                }
+              : chunk
         ),
       })),
     })),

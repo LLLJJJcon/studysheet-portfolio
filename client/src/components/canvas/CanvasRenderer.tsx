@@ -44,7 +44,6 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   const addChunk = useCanvasStore((s) => s.addChunk);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragPosition, setDragPosition] = useState<'before' | 'after' | null>(null);
-  const [hoverGapId, setHoverGapId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const insertAfterRef = useRef<string | null>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -282,28 +281,11 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
           onDragOverPosition={handleDragOverChunk}
           onDragLeaveChunk={handleDragLeaveChunk}
           onDropInsert={handleDropChunk}
+          heightMm={chunk.height}
+          onInsertImage={handleInsertImage}
         />
         {!isLastInCol && (
-          <div
-            className="relative group/gap"
-            style={{ height: 6 }}
-            onMouseEnter={() => setHoverGapId(chunk.nodeId)}
-            onMouseLeave={() => setHoverGapId(null)}
-          >
-            {hoverGapId === chunk.nodeId && (
-              <button
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs hover:bg-blue-600 shadow-sm z-10 cursor-pointer"
-                style={{ fontSize: '14px', lineHeight: 1 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleInsertImage(chunk.nodeId);
-                }}
-                title="Insert image"
-              >
-                +
-              </button>
-            )}
-          </div>
+          <div style={{ height: 6 }} />
         )}
       </React.Fragment>
     );
@@ -399,6 +381,8 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
                   style={{
                     padding: '1px 2px',
                     marginBottom: 2,
+                    width: `${Math.min(colWidth, Math.max(80, (chunk.width || 20) * MM_TO_PX))}px`,
+                    minHeight: `${Math.max(36, (chunk.height || 8) * MM_TO_PX)}px`,
                     breakInside: 'avoid' as const,
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word',

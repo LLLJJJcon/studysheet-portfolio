@@ -4,6 +4,7 @@ import { ChunkToolbar } from './ChunkToolbar';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useTreeStore } from '../../stores/treeStore';
 import { TreeNode } from '../../types/tree';
+import { MM_TO_PX } from '../../utils/constants';
 
 function findSourceFile(node: TreeNode, targetId: string, ancestorSource?: string): string | undefined {
   const src = node.sourceFile || ancestorSource;
@@ -30,6 +31,8 @@ interface ChunkProps {
   onDragOverPosition?: (nodeId: string, position: 'before' | 'after') => void;
   onDragLeaveChunk?: () => void;
   onDropInsert?: (draggedId: string, targetId: string, position: 'before' | 'after') => void;
+  heightMm?: number;
+  onInsertImage?: (afterNodeId: string) => void;
 }
 
 const IMPORTANCE_COLORS: Record<string, string> = {
@@ -59,14 +62,24 @@ export const ChunkComponent: React.FC<ChunkProps> = ({
   onDragOverPosition,
   onDragLeaveChunk,
   onDropInsert,
+  heightMm,
+  onInsertImage,
 }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(content);
+  const [isResizing, setIsResizing] = useState(false);
+  const [liveSizePx, setLiveSizePx] = useState<{ height: number } | null>(null);
+  const liveSizeRef = useRef<{ height: number } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const updateChunkContent = useCanvasStore((s) => s.updateChunkContent);
+  const setChunkBoxSize = useCanvasStore((s) => s.setChunkBoxSize);
   const tree = useTreeStore((s) => s.tree);
   const sourceFile = tree ? findSourceFile(tree, nodeId) : undefined;
+
+  const minHeightMm = 8;
+  const baseHeightPx = Math.max(36, (heightMm || minHeightMm) * MM_TO_PX);
+  const appliedHeightPx = liveSizePx?.height || baseHeightPx;
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -169,10 +182,46 @@ export const ChunkComponent: React.FC<ChunkProps> = ({
     }
   }, [nodeId, onDropInsert]);
 
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isEditing) return;
+
+    setIsResizing(true);
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startHeight = appliedHeightPx;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const dy = moveEvent.clientY - startY;
+      const nextHeight = Math.max(minHeightMm * MM_TO_PX, startHeight + dy);
+      const next = { height: nextHeight };
+      liveSizeRef.current = next;
+      setLiveSizePx(next);
+    };
+
+    const handleMouseUp = () => {
+      const finalSize = liveSizeRef.current || { height: startHeight };
+      setChunkBoxSize(
+        nodeId,
+        undefined,
+        Math.max(minHeightMm, finalSize.height / MM_TO_PX)
+      );
+      setIsResizing(false);
+      setLiveSizePx(null);
+      liveSizeRef.current = null;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [appliedHeightPx, isEditing, nodeId, setChunkBoxSize]);
+
   return (
     <div
       ref={divRef}
-      draggable={!isEditing}
+      draggable={!isEditing && !isResizing}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -184,6 +233,7 @@ export const ChunkComponent: React.FC<ChunkProps> = ({
         fontSize: `${fontSize}pt`,
         lineHeight: 1.35,
         marginBottom: 2,
+        minHeight: `${appliedHeightPx}px`,
         borderTop: showInsertBefore ? '3px solid #3b82f6' : undefined,
         borderBottom: showInsertAfter ? '3px solid #3b82f6' : undefined,
         position: 'relative',
@@ -234,6 +284,43 @@ export const ChunkComponent: React.FC<ChunkProps> = ({
           sourceFile={sourceFile}
           onShowSource={onShowSource}
         />
+      )}
+
+      {isSelected && !isEditing && (
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1">
+          {onInsertImage && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onInsertImage(nodeId);
+              }}
+              className="w-7 h-5 bg-emerald-500 text-white rounded-md shadow hover:bg-emerald-600 cursor-pointer flex items-center justify-center"
+              title="Add image"
+              aria-label="Add image"
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="M8 13l2.5-2.5L16 16" />
+                <path d="M14.5 12.5L16 11l3 3" />
+              </svg>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onMouseDown={handleResizeStart}
+            className="w-7 h-5 bg-blue-500 text-white rounded-md shadow cursor-ns-resize flex items-center justify-center"
+            title="Drag to adjust block height"
+            aria-label="Adjust block height"
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 4v16" />
+              <path d="M8 8l4-4 4 4" />
+              <path d="M8 16l4 4 4-4" />
+            </svg>
+          </button>
+        </div>
       )}
     </div>
   );
