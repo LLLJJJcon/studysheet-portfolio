@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { ChunkToolbar } from './ChunkToolbar';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useTreeStore } from '../../stores/treeStore';
+import { useChunkChatStore } from '../../stores/chunkChatStore';
 import { TreeNode } from '../../types/tree';
 import { MM_TO_PX } from '../../utils/constants';
 
@@ -76,6 +77,14 @@ export const ChunkComponent: React.FC<ChunkProps> = ({
   const setChunkBoxSize = useCanvasStore((s) => s.setChunkBoxSize);
   const tree = useTreeStore((s) => s.tree);
   const sourceFile = tree ? findSourceFile(tree, nodeId) : undefined;
+  const highlightedDuplicateIds = useChunkChatStore((s) => s.highlightedDuplicateIds);
+  const isDuplicateHighlighted = highlightedDuplicateIds.includes(nodeId);
+  const openChat = useChunkChatStore((s) => s.open);
+
+  const handleAskAI = useCallback(() => {
+    setIsEditing(false);
+    openChat(nodeId);
+  }, [nodeId, openChat]);
 
   const minHeightMm = 8;
   const baseHeightPx = Math.max(36, (heightMm || minHeightMm) * MM_TO_PX);
@@ -228,7 +237,9 @@ export const ChunkComponent: React.FC<ChunkProps> = ({
       onDrop={handleDrop}
       className={`border rounded cursor-pointer transition-shadow ${colorClass} ${
         isSelected ? `ring-2 ${highlightRing} shadow-md` : ''
-      } ${isHighlighted ? `ring-1 ${highlightRing}` : ''}`}
+      } ${isHighlighted ? `ring-1 ${highlightRing}` : ''} ${
+        isDuplicateHighlighted ? 'ring-2 ring-orange-400 ring-dashed' : ''
+      }`}
       style={{
         fontSize: `${fontSize}pt`,
         lineHeight: 1.35,
@@ -255,6 +266,16 @@ export const ChunkComponent: React.FC<ChunkProps> = ({
               e.stopPropagation();
             }}
           />
+          <button
+            className="text-xs text-purple-500 hover:text-purple-700 mt-1 px-1"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleAskAI();
+            }}
+          >
+            Ask AI
+          </button>
         ) : (
           (() => {
             const imgMatch = content.match(/^!\[.*?\]\((.*?)\)$/);
@@ -283,6 +304,7 @@ export const ChunkComponent: React.FC<ChunkProps> = ({
           onDelete={onDelete}
           sourceFile={sourceFile}
           onShowSource={onShowSource}
+          onAskAI={handleAskAI}
           anchorEl={divRef.current}
         />
       )}
