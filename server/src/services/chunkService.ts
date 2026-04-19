@@ -1,4 +1,5 @@
 import { Chunk } from '../models/Chunk';
+import { ContentTree, ITreeNode } from '../models/ContentTree';
 
 export const chunkService = {
   async upsertChunk(
@@ -38,5 +39,43 @@ export const chunkService = {
       { $group: { _id: null, total: { $sum: '$wordCount' } } },
     ]);
     return result[0]?.total || 0;
+  },
+
+  async getChunksByNodeIds(courseId: string, nodeIds: string[]) {
+    return Chunk.find({ courseId, nodeId: { $in: nodeIds } });
+  },
+
+  async getTreePathForNode(courseId: string, nodeId: string): Promise<string> {
+    const contentTree = await ContentTree.findOne({ courseId });
+    if (!contentTree) return '';
+
+    function dfs(node: ITreeNode, path: string[]): string | null {
+      path.push(node.name);
+      if (node.nodeId === nodeId) return path.join(' > ');
+      for (const child of node.children) {
+        const result = dfs(child, path);
+        if (result) return result;
+      }
+      path.pop();
+      return null;
+    }
+
+    return dfs(contentTree.tree, []) || '';
+  },
+
+  async getNodeName(courseId: string, nodeId: string): Promise<string> {
+    const contentTree = await ContentTree.findOne({ courseId });
+    if (!contentTree) return '';
+
+    function dfs(node: ITreeNode): string | null {
+      if (node.nodeId === nodeId) return node.name;
+      for (const child of node.children) {
+        const result = dfs(child);
+        if (result) return result;
+      }
+      return null;
+    }
+
+    return dfs(contentTree.tree) || '';
   },
 };
