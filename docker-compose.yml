@@ -1,3 +1,5 @@
+name: studysheet
+
 services:
   client:
     build: ./client
@@ -5,11 +7,21 @@ services:
       - "5173:5173"
     depends_on:
       - server
-    volumes:
-      - ./client:/app
-      - /app/node_modules
     environment:
       - VITE_API_URL=http://localhost:3001/api
+    develop:
+      watch:
+        - action: sync
+          path: ./client/src
+          target: /app/src
+        - action: sync
+          path: ./client/index.html
+          target: /app/index.html
+        - action: sync
+          path: ./client/vite.config.ts
+          target: /app/vite.config.ts
+        - action: rebuild
+          path: ./client/package.json
 
   server:
     build: ./server
@@ -17,16 +29,21 @@ services:
       - "3001:3001"
     depends_on:
       - mongo
+    env_file:
+      - .env
     environment:
       - MONGODB_URI=mongodb://mongo:27017/studysheet
-      - JWT_SECRET=${JWT_SECRET}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - PORT=3001
       - NODE_ENV=development
     volumes:
-      - ./server:/app
-      - /app/node_modules
       - uploads:/app/uploads
+    develop:
+      watch:
+        - action: sync
+          path: ./server/src
+          target: /app/src
+        - action: rebuild
+          path: ./server/package.json
 
   mongo:
     image: mongo:7
@@ -34,6 +51,7 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    restart: unless-stopped
 
 volumes:
   mongo_data:
