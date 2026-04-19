@@ -92,7 +92,7 @@ export const TreeNodeActions: React.FC<TreeNodeActionsProps> = ({
   }, [tree, nodeId, setTree]);
 
   return (
-    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="flex items-center gap-0.5">
       <button
         className="p-0.5 rounded hover:bg-blue-50 text-blue-500"
         onClick={(e) => { e.stopPropagation(); addChild(); }}
