@@ -283,6 +283,7 @@ export const ChunkComponent: React.FC<ChunkProps> = ({
           onDelete={onDelete}
           sourceFile={sourceFile}
           onShowSource={onShowSource}
+          anchorEl={divRef.current}
         />
       )}
 

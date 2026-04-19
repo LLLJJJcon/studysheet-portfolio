@@ -1,10 +1,12 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useLayoutEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ChunkToolbarProps {
   nodeId: string;
   onDelete: (nodeId: string) => void;
   sourceFile?: string;
   onShowSource?: (nodeId: string) => void;
+  anchorEl?: HTMLElement | null;
 }
 
 export const ChunkToolbar: React.FC<ChunkToolbarProps> = ({
@@ -12,7 +14,10 @@ export const ChunkToolbar: React.FC<ChunkToolbarProps> = ({
   onDelete,
   sourceFile,
   onShowSource,
+  anchorEl,
 }) => {
+  const [position, setPosition] = useState<{ left: number; top: number; placeBelow: boolean } | null>(null);
+
   const handleDelete = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -29,8 +34,44 @@ export const ChunkToolbar: React.FC<ChunkToolbarProps> = ({
     [nodeId, onShowSource]
   );
 
-  return (
-    <div className="absolute -top-8 right-0 flex items-center gap-1 bg-white rounded shadow-md border border-gray-200 px-1 py-0.5">
+  useLayoutEffect(() => {
+    if (!anchorEl) {
+      setPosition(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      const rect = anchorEl.getBoundingClientRect();
+      const placeBelow = rect.top < 44;
+      setPosition({
+        left: rect.right,
+        top: placeBelow ? rect.bottom : rect.top,
+        placeBelow,
+      });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [anchorEl]);
+
+  if (!position) return null;
+
+  return createPortal(
+    <div
+      className="fixed z-50 flex items-center gap-1 bg-white/95 rounded shadow-md border border-gray-200 px-1 py-0.5"
+      style={{
+        left: position.left,
+        top: position.top,
+        transform: position.placeBelow
+          ? 'translate(calc(-100% - 2px), 4px)'
+          : 'translate(calc(-100% - 2px), calc(-100% - 4px))',
+      }}
+    >
       {sourceFile && (
         <button
           className="text-[10px] text-gray-500 px-1 truncate max-w-[150px] hover:text-blue-600"
@@ -54,6 +95,7 @@ export const ChunkToolbar: React.FC<ChunkToolbarProps> = ({
           />
         </svg>
       </button>
-    </div>
+    </div>,
+    document.body
   );
 };
