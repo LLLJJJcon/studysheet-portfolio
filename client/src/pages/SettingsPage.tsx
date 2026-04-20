@@ -15,6 +15,7 @@ export function SettingsPage() {
   const [preferredModel, setPreferredModel] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
 
   useEffect(() => {
     if (user) {
@@ -28,6 +29,7 @@ export function SettingsPage() {
     e.preventDefault();
     setSaving(true);
     setMessage('');
+    setMessageType('');
     try {
       const update: { openai?: string | null; anthropic?: string | null; gemini?: string | null } = {};
       if (openaiKey) update.openai = openaiKey;
@@ -44,11 +46,13 @@ export function SettingsPage() {
       });
       await fetchUser();
       setMessage('Settings saved successfully');
+      setMessageType('success');
       setOpenaiKey('');
       setAnthropicKey('');
       setGeminiKey('');
     } catch {
       setMessage('Save failed');
+      setMessageType('error');
     } finally {
       setSaving(false);
     }
@@ -87,7 +91,7 @@ export function SettingsPage() {
           <h2 className="text-lg font-semibold mb-4">LLM API Keys</h2>
 
           {message && (
-            <div className={`p-3 rounded-md text-sm mb-4 ${message.includes('Success') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+            <div className={`p-3 rounded-md text-sm mb-4 ${messageType === 'success' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
               {message}
             </div>
           )}
