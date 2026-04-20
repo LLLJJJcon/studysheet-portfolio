@@ -83,6 +83,9 @@ export function computeAlgorithmicLayout(
 
   // filter orphan chunks
   const valid = chunks.filter(c => findNode(tree, c.nodeId));
+  if (valid.length !== chunks.length) {
+    console.warn(`[algorithmicLayout] ${chunks.length - valid.length}/${chunks.length} chunks filtered out (nodeId not found in tree)`);
+  }
 
   // group by parent node
   const gMap = new Map<string, {

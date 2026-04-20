@@ -375,6 +375,7 @@ export const generationOrchestrator = {
       for (let i = 0; i < secondLevelNodes.length; i += CONCURRENCY) {
         const batch = secondLevelNodes.slice(i, i + CONCURRENCY);
         const promises = batch.map(async (subtree) => {
+          let l2Response = '';
           try {
             // Determine source content for this subtree
             const sourceContentRaw = subtree.sourceFile
@@ -388,7 +389,7 @@ export const generationOrchestrator = {
 
             const l2Messages = buildL2Prompt(course.name, sourceContent, subtree);
 
-            const l2Response = await streamCollect(
+            l2Response = await streamCollect(
               provider,
               { messages: l2Messages, responseFormat: 'json', temperature: 0.3 },
               2,
@@ -425,6 +426,7 @@ export const generationOrchestrator = {
             });
           } catch (err) {
             console.error(`L2 failed for subtree "${subtree.name}":`, err instanceof Error ? err.message : err);
+            console.error(`L2 raw response (first 500 chars):`, l2Response?.substring(0, 500) || '<empty>');
             completedSubtrees++;
             sendSSE(res, 'l2:subtree-error', {
               subtreeName: subtree.name,
@@ -498,6 +500,17 @@ export const generationOrchestrator = {
       }
 
       const totalWords = await chunkService.getTotalWordCount(courseId);
+      const allChunksAfterL2 = await chunkService.getChunksByCourse(courseId);
+      console.log(`[L2 complete] Total chunks: ${allChunksAfterL2.length}, total words: ${totalWords}`);
+
+      if (allChunksAfterL2.length === 0) {
+        console.error('[L2] No chunks generated after L2 + reconciliation. Aborting pipeline.');
+        sendSSE(res, 'l2:complete', { totalWordCount: 0 });
+        sendSSEError(res, 'Failed to generate content chunks. The LLM did not return valid JSON. Please check your LLM provider settings or try a different model.', true);
+        await courseService.updateStatus(courseId, 'created');
+        return;
+      }
+
       sendSSE(res, 'l2:complete', { totalWordCount: totalWords });
 
       // ----- L3: Compression (serial: Awareness → Important → High-Frequency) -----
