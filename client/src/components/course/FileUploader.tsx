@@ -1,5 +1,7 @@
 import React, { useCallback, useState } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+
 interface FileUploaderProps {
   courseId: string;
   onUploadComplete: () => void;
@@ -23,7 +25,7 @@ export function FileUploader({ courseId, onUploadComplete }: FileUploaderProps) 
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/courses/${courseId}/files`, {
+      const response = await fetch(`${API_URL}/courses/${courseId}/files`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
