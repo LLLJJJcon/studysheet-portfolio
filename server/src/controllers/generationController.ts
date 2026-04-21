@@ -17,6 +17,7 @@ import { initSSE, sendSSE, endSSE, sendSSEError } from '../utils/sseHelper';
 import { fileConversionService } from '../services/fileConversionService';
 import { runChunkChatPipeline } from '../services/chunkChatService';
 import { chunkChatSchema } from '../middleware/validation';
+import { incrementalMergeService } from '../services/incrementalMergeService';
 
 export const generationController = {
   async startGeneration(req: AuthRequest, res: Response): Promise<void> {
@@ -537,6 +538,38 @@ export const generationController = {
       const message = error instanceof Error ? error.message : 'An error occurred';
       sendSSEError(res, message, false);
     }
+  },
+
+  async startIncrementalMerge(req: AuthRequest, res: Response): Promise<void> {
+    const courseId = req.params.id;
+    const userId = req.user!.userId;
+    const { newFileIds } = req.body;
+
+    if (!Array.isArray(newFileIds) || newFileIds.length === 0) {
+      res.status(400).json({ error: 'newFileIds array is required' });
+      return;
+    }
+
+    const course = await Course.findOne({ _id: courseId, userId });
+    if (!course) {
+      res.status(404).json({ error: 'Course not found' });
+      return;
+    }
+
+    if (course.status === 'generating') {
+      res.status(409).json({ error: 'A generation or merge is already in progress.' });
+      return;
+    }
+
+    const missingIds = newFileIds.filter(
+      (id: string) => !course.files.some(f => f.fileId === id)
+    );
+    if (missingIds.length > 0) {
+      res.status(400).json({ error: `File IDs not found: ${missingIds.join(', ')}` });
+      return;
+    }
+
+    await incrementalMergeService.startMerge(courseId, userId, newFileIds, res);
   },
 };
 
