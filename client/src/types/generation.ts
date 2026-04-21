@@ -9,7 +9,8 @@ export type GenerationPhase =
   | 'l4:layout'
   | 'l4:complete'
   | 'done'
-  | 'error';
+  | 'error'
+  | 'merge:running';
 
 export interface SSEEvent {
   type: string;

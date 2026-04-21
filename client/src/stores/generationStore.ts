@@ -16,6 +16,8 @@ interface GenerationState {
   l3CurrentLevel: string;
   l3CompressedCount: number;
   l3CompletedLevels: string[];
+  mergeProgress: number;
+  mergeStatusText: string;
   setPhase: (phase: GenerationPhase) => void;
   setError: (error: GenerationError | null) => void;
   appendStreamingContent: (content: string) => void;
@@ -26,6 +28,8 @@ interface GenerationState {
   setL3CurrentLevel: (level: string) => void;
   incrementL3Compressed: () => void;
   addL3CompletedLevel: (level: string) => void;
+  setMergeProgress: (progress: number) => void;
+  setMergeStatusText: (text: string) => void;
   reset: () => void;
 }
 
@@ -39,6 +43,8 @@ export const useGenerationStore = create<GenerationState>((set) => ({
   l3CurrentLevel: '',
   l3CompressedCount: 0,
   l3CompletedLevels: [],
+  mergeProgress: 0,
+  mergeStatusText: '',
 
   setPhase: (phase) => set({ phase, error: null }),
   setError: (error) => set({ error, phase: error ? 'error' : 'idle' }),
@@ -58,6 +64,8 @@ export const useGenerationStore = create<GenerationState>((set) => ({
     set((state) => ({
       l3CompletedLevels: [...state.l3CompletedLevels, level],
     })),
+  setMergeProgress: (progress) => set({ mergeProgress: progress }),
+  setMergeStatusText: (text) => set({ mergeStatusText: text }),
   reset: () =>
     set({
       phase: 'idle',
@@ -69,5 +77,7 @@ export const useGenerationStore = create<GenerationState>((set) => ({
       l3CurrentLevel: '',
       l3CompressedCount: 0,
       l3CompletedLevels: [],
+      mergeProgress: 0,
+      mergeStatusText: '',
     }),
 }));

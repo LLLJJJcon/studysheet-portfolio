@@ -32,6 +32,9 @@ export const generationApi = {
   getOptimizeLayoutUrl(courseId: string): string {
     return `${API_URL}/courses/${courseId}/optimize-layout`;
   },
+  getIncrementalMergeUrl(courseId: string): string {
+    return `${API_URL}/courses/${courseId}/incremental-merge`;
+  },
 
   async uploadImage(courseId: string, file: File): Promise<{ url: string; filename: string } | null> {
     const token = localStorage.getItem('token');
