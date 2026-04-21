@@ -27,7 +27,7 @@ const MAX_CHILDREN_PER_NODE = 40;
  * Collect the full text from a streaming LLM call with retry on transient errors.
  * Retries up to `retries` times on rate-limit (429), premature close, etc.
  */
-async function streamCollect(
+export async function streamCollect(
   provider: LLMProvider,
   params: { messages: any[]; responseFormat?: string; temperature?: number },
   retries = 2,
@@ -105,13 +105,13 @@ function collectNodeNames(node: ITreeNode, map: Map<string, string>): void {
   for (const ch of node.children || []) collectNodeNames(ch, map);
 }
 
-function truncateForLLM(text: string, maxChars: number): string {
+export function truncateForLLM(text: string, maxChars: number): string {
   const normalized = (text || '').trim();
   if (normalized.length <= maxChars) return normalized;
   return `${normalized.slice(0, maxChars)}\n\n[Content truncated due to length]`;
 }
 
-function toSafeNode(node: unknown, depth = 0): Record<string, unknown> {
+export function toSafeNode(node: unknown, depth = 0): Record<string, unknown> {
   const asObj = (node && typeof node === 'object') ? (node as Record<string, unknown>) : {};
   const name = typeof asObj.name === 'string' && asObj.name.trim()
     ? asObj.name.trim()
@@ -153,7 +153,7 @@ function buildFallbackTree(courseName: string, files: Array<{ filename: string }
   };
 }
 
-function assignNodeIds(node: Record<string, unknown>): ITreeNode {
+export function assignNodeIds(node: Record<string, unknown>): ITreeNode {
   const result: ITreeNode = {
     nodeId: uuidv4(),
     name: (node.name as string) || '',
@@ -184,7 +184,7 @@ function findNodeById(node: ITreeNode, nodeId: string): ITreeNode | null {
   return null;
 }
 
-function mapLLMErrorToUserMessage(error: unknown): { message: string; retryable: boolean } {
+export function mapLLMErrorToUserMessage(error: unknown): { message: string; retryable: boolean } {
   const raw = error instanceof Error ? error.message : String(error);
   const lower = raw.toLowerCase();
 
