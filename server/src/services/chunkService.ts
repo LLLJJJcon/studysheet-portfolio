@@ -9,11 +9,13 @@ export const chunkService = {
     wordCount: number,
     importance: string,
     sourceStart?: string,
-    sourceEnd?: string
+    sourceEnd?: string,
+    sourceFiles?: string[]
   ) {
     const update: Record<string, unknown> = { content, wordCount, importance };
     if (sourceStart !== undefined) update.sourceStart = sourceStart;
     if (sourceEnd !== undefined) update.sourceEnd = sourceEnd;
+    if (sourceFiles !== undefined) update.sourceFiles = sourceFiles;
     return Chunk.findOneAndUpdate(
       { courseId, nodeId },
       update,

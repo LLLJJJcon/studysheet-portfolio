@@ -8,6 +8,7 @@ export interface IChunk extends Document {
   importance: string;
   sourceStart?: string;
   sourceEnd?: string;
+  sourceFiles?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +44,10 @@ const chunkSchema = new Schema<IChunk>(
     sourceEnd: {
       type: String,
       default: '',
+    },
+    sourceFiles: {
+      type: [String],
+      default: [],
     },
   },
   {
