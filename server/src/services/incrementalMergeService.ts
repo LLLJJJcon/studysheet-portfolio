@@ -18,6 +18,8 @@ import {
   assignNodeIds,
   truncateForLLM,
   mapLLMErrorToUserMessage,
+  stripFileNameNodes,
+  collectSourceFiles,
 } from './generationOrchestrator';
 import { validateMergeOperations, MergeOperation } from './mergeValidator';
 import { initSSE, sendSSE, endSSE, sendSSEError } from '../utils/sseHelper';
@@ -261,7 +263,10 @@ export const incrementalMergeService = {
         return;
       }
 
-      const tempTree = assignNodeIds(tempTreeRaw);
+      const tempTree = stripFileNameNodes(
+        assignNodeIds(tempTreeRaw),
+        filesWithContent.map(f => f.originalName)
+      );
 
       // L2: generate chunks for new files (in memory)
       const tempChunks = new Map<string, TempChunk>();
@@ -279,9 +284,18 @@ export const incrementalMergeService = {
         const batch = secondLevelNodes.slice(i, i + L2_CONCURRENCY);
         const promises = batch.map(async (subtree) => {
           try {
-            const sourceRaw = subtree.sourceFile
-              ? fileContentMap.get(subtree.sourceFile) || allNewContent
-              : allNewContent;
+            const subtreeSources = collectSourceFiles(subtree);
+            let sourceRaw = '';
+            if (subtreeSources.size > 0) {
+              const parts: string[] = [];
+              for (const sf of subtreeSources) {
+                const fc = fileContentMap.get(sf);
+                if (fc) parts.push(fc);
+              }
+              sourceRaw = parts.length > 0 ? parts.join('\n\n') : allNewContent;
+            } else {
+              sourceRaw = allNewContent;
+            }
             const sourceContent = truncateForLLM(sourceRaw, MAX_L2_SOURCE_CHARS);
             if (!sourceContent.trim()) return;
 
@@ -300,7 +314,7 @@ export const incrementalMergeService = {
             for (const c of chunks) {
               const leafNode = findNodeById(subtree, c.node_id);
               const importance = leafNode?.importance || 'Important';
-              const sourceFile = subtree.sourceFile || filesWithContent[0]?.originalName || '';
+              const sourceFile = leafNode?.sourceFile || filesWithContent[0]?.originalName || '';
               tempChunks.set(c.node_id, {
                 nodeId: c.node_id,
                 content: typeof c.content === 'string' ? c.content : '',
