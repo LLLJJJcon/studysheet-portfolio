@@ -35,6 +35,22 @@ const MAX_STAGE3_RETRIES = 3;
 const MAX_STAGE5_RETRIES = 3;
 const L2_CONCURRENCY = 3;
 
+// Detects errors that indicate the LLM provider is rejecting every call
+// (rate-limit / quota / auth). Once this flips true we stop flogging a dead
+// horse instead of silently continuing the pipeline for minutes.
+function isFatalProviderError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as { status?: number; code?: string; message?: string };
+  if (e.status === 429 || e.status === 401 || e.status === 403) return true;
+  const msg = (e.message || '').toLowerCase();
+  return (
+    msg.includes('rate limit') ||
+    msg.includes('quota') ||
+    msg.includes('insufficient_quota') ||
+    msg.includes('reached the limit')
+  );
+}
+
 interface TempChunk {
   nodeId: string;
   content: string;
@@ -318,6 +334,7 @@ export const incrementalMergeService = {
       let operations: MergeOperation[] = [];
       let diffSuccess = false;
 
+      let fatalProviderError: unknown = null;
       for (let attempt = 0; attempt < MAX_STAGE3_RETRIES; attempt++) {
         try {
           const diffResponse = await streamCollect(
@@ -338,7 +355,18 @@ export const incrementalMergeService = {
           }
         } catch (err) {
           console.warn(`Merge diff attempt ${attempt + 1} error:`, err);
+          if (isFatalProviderError(err)) {
+            fatalProviderError = err;
+            break;
+          }
         }
+      }
+
+      if (fatalProviderError) {
+        const mapped = mapLLMErrorToUserMessage(fatalProviderError);
+        sendSSEError(res, mapped.message, mapped.retryable);
+        await courseService.updateStatus(courseId, 'editing');
+        return;
       }
 
       if (!diffSuccess) {
@@ -358,6 +386,7 @@ export const incrementalMergeService = {
       if (mergeOps.length > 0) {
         sendSSE(res, 'merge:content-merge-start', { count: mergeOps.length });
 
+        let stage5FatalError: unknown = null;
         for (let mi = 0; mi < mergeOps.length; mi++) {
           const mop = mergeOps[mi];
           const existingChunk = await chunkService.getChunksByNodeIds(courseId, [mop.existing_node_id!]);
@@ -384,8 +413,14 @@ export const incrementalMergeService = {
               }
             } catch (err) {
               console.warn(`Content merge attempt ${attempt + 1} failed for ${mop.existing_node_id}:`, err);
+              if (isFatalProviderError(err)) {
+                stage5FatalError = err;
+                break;
+              }
             }
           }
+
+          if (stage5FatalError) break;
 
           if (merged) {
             mergedContents.set(mop.existing_node_id!, merged);
@@ -395,6 +430,17 @@ export const incrementalMergeService = {
             completed: mi + 1,
             total: mergeOps.length,
           });
+        }
+
+        // If the provider is rejecting every call (quota / rate-limit / auth),
+        // stop the pipeline instead of silently proceeding to layout with an
+        // empty merged-content map — which leaves the UI stuck on "Updating
+        // layout..." forever.
+        if (stage5FatalError) {
+          const mapped = mapLLMErrorToUserMessage(stage5FatalError);
+          sendSSEError(res, mapped.message, mapped.retryable);
+          await courseService.updateStatus(courseId, 'editing');
+          return;
         }
       }
 
