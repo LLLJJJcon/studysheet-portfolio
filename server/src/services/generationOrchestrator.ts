@@ -214,6 +214,53 @@ function findNodeById(node: ITreeNode, nodeId: string): ITreeNode | null {
   return null;
 }
 
+export function collectSourceFiles(node: ITreeNode): Set<string> {
+  const sources = new Set<string>();
+  if (node.sourceFile) sources.add(node.sourceFile);
+  for (const child of node.children || []) {
+    for (const s of collectSourceFiles(child)) sources.add(s);
+  }
+  return sources;
+}
+
+function propagateSourceFile(node: ITreeNode, sourceFile: string): void {
+  if (!node.children || node.children.length === 0) {
+    if (!node.sourceFile) node.sourceFile = sourceFile;
+    return;
+  }
+  for (const child of node.children) propagateSourceFile(child, sourceFile);
+}
+
+export function stripFileNameNodes(tree: ITreeNode, filenames: string[]): ITreeNode {
+  const nameSet = new Set(filenames.map(f => f.toLowerCase().trim()));
+  const noExtSet = new Set(filenames.map(f => {
+    const dot = f.lastIndexOf('.');
+    return (dot > 0 ? f.substring(0, dot) : f).toLowerCase().trim();
+  }));
+
+  const newChildren: ITreeNode[] = [];
+
+  for (const child of tree.children || []) {
+    const lower = child.name.toLowerCase().trim();
+    const isFileNode =
+      (nameSet.has(lower) || noExtSet.has(lower)) &&
+      child.children &&
+      child.children.length > 0;
+
+    if (isFileNode) {
+      const sourceFile = child.sourceFile || child.name;
+      propagateSourceFile(child, sourceFile);
+      for (const grandchild of child.children) {
+        newChildren.push(grandchild);
+      }
+    } else {
+      newChildren.push(child);
+    }
+  }
+
+  return { ...tree, children: newChildren };
+}
+
 export function mapLLMErrorToUserMessage(error: unknown): { message: string; retryable: boolean } {
   const raw = error instanceof Error ? error.message : String(error);
   const lower = raw.toLowerCase();
