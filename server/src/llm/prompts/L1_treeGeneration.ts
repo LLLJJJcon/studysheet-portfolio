@@ -8,6 +8,8 @@ export function buildL1Prompt(
     .map((f, i) => `--- File ${i + 1}: ${f.filename} ---\n${f.content}`)
     .join('\n\n');
 
+  const filenameList = files.map((f) => f.filename).join(', ');
+
   return [
     {
       role: 'system',
@@ -15,10 +17,11 @@ export function buildL1Prompt(
 
 The tree structure rules:
 - Root node: the course name "${courseName}"
-- Second-level nodes: one per source file (use the filename as the node name)
-- Under each second-level node: hierarchical exam-point structure extracted from that file
+- Organize by knowledge structure: group by topics, chapters, or concept areas — NOT by source file
+- Do NOT create file-level grouping nodes. Merge related content from different files under the same topic
 - Leaf nodes must have an "importance" field: "High-Frequency", "Important", or "Awareness"
-- Non-leaf nodes should NOT have importance
+- Leaf nodes must have a "sourceFile" field: the filename of the primary source file for that exam point. Must be one of: ${filenameList}
+- Non-leaf nodes should NOT have importance or sourceFile
 - Importance should be assigned from a GLOBAL perspective across all files to ensure cross-file consistency
 
 Importance criteria:
@@ -32,15 +35,15 @@ Output format: valid JSON with this structure:
     "name": "${courseName}",
     "children": [
       {
-        "name": "filename",
-        "sourceFile": "filename",
+        "name": "Topic Area",
         "children": [
           {
-            "name": "Chapter/Topic",
+            "name": "Subtopic",
             "children": [
               {
                 "name": "Exam Point",
-                "importance": "High-Frequency" | "Important" | "Awareness"
+                "importance": "High-Frequency",
+                "sourceFile": "lecture1.pdf"
               }
             ]
           }
