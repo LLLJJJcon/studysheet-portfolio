@@ -255,6 +255,7 @@ body {
     if (tree && !confirm('Regenerating will overwrite current content,Confirm continue?')) return;
     setGenerating(true);
     setShowUploadArea(false);
+    useGenerationStore.getState().resetStreamingContent();
     setPhase('l1:generating');
 
     const token = localStorage.getItem('token');
@@ -386,6 +387,7 @@ body {
     if (!id || generating || pendingNewFileIds.length === 0) return;
     setGenerating(true);
     setShowUploadArea(false);
+    useGenerationStore.getState().resetStreamingContent();
     setPhase('merge:running');
     setMergeProgress(0);
     setMergeStatusText('Starting incremental merge...');
@@ -408,11 +410,13 @@ body {
         const err = await response.json().catch(() => ({ error: 'Merge failed' }));
         setError({ message: err.error || 'Merge failed', retryable: true });
         setGenerating(false);
+        // Keep pendingNewFileIds so the user can retry or switch to Full Regenerate.
         return;
       }
 
+      let mergeSucceeded = false;
       const reader = response.body?.getReader();
-      if (!reader) return;
+      if (!reader) { setGenerating(false); return; }
 
       const decoder = new TextDecoder();
       let buffer = '';
@@ -433,6 +437,7 @@ body {
             try {
               const data = JSON.parse(line.slice(6));
               if (pendingEvent) {
+                if (pendingEvent === 'merge:complete') mergeSucceeded = true;
                 handleMergeSSEEvent(pendingEvent, data);
                 pendingEvent = '';
               }
@@ -444,7 +449,9 @@ body {
       setError({ message: 'Network error during merge', retryable: true });
     } finally {
       setGenerating(false);
-      setPendingNewFileIds([]);
+      // Only clear pending uploads if the merge actually completed; otherwise
+      // keep them so the user can retry without re-uploading.
+      if (mergeSucceeded) setPendingNewFileIds([]);
     }
   };
 

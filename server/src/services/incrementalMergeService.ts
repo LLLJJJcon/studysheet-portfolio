@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { User, IUser } from '../models/User';
 import { Course } from '../models/Course';
 import { ContentTree, ITreeNode } from '../models/ContentTree';
+import { Layout } from '../models/Layout';
+import { Chunk } from '../models/Chunk';
 import { createProvider } from '../llm/ProviderFactory';
 import { LLMProvider } from '../llm/LLMProvider';
 import { buildL1Prompt } from '../llm/prompts/L1_treeGeneration';
@@ -140,15 +142,39 @@ export const incrementalMergeService = {
       const course = await Course.findOne({ _id: courseId, userId });
       if (!course) { sendSSEError(res, 'Course not found', false); return; }
 
-      if (course.status !== 'editing') {
+      if (course.status === 'generating') {
         sendSSEError(res, 'A generation or merge is already in progress.', false);
         return;
       }
 
       const existingTreeDoc = await ContentTree.findOne({ courseId });
       if (!existingTreeDoc) {
-        sendSSEError(res, 'No existing content tree. Use full generation first.', false);
+        sendSSEError(res, 'No existing content tree. Please run Full Regenerate first.', false);
         return;
+      }
+
+      // Incremental merge only makes sense when the previous generation actually
+      // produced content chunks (and ideally a layout). Otherwise tell the user
+      // to run Full Regenerate first — previous runs may have failed at L2.
+      const [existingLayout, chunkCount] = await Promise.all([
+        Layout.findOne({ courseId }),
+        Chunk.countDocuments({ courseId }),
+      ]);
+
+      if (chunkCount === 0 || !existingLayout) {
+        sendSSEError(
+          res,
+          'Initial generation has not finished successfully (no content chunks yet). Please click "Full Regenerate" to complete the first pass before merging new files.',
+          false
+        );
+        return;
+      }
+
+      // Self-heal: if status got stuck on e.g. 'created' after a crash but
+      // everything is actually in place, bump it back to 'editing'.
+      if (course.status !== 'editing') {
+        course.status = 'editing';
+        await courseService.updateStatus(courseId, 'editing').catch(() => {});
       }
 
       const newFiles = course.files.filter(f => newFileIds.includes(f.fileId));
