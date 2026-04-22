@@ -6,6 +6,7 @@ interface LayoutCanvasProps {
   pageWidth: number;    // mm
   pageHeight: number;   // mm
   pages: number;
+  targetPages?: number;
   children?: React.ReactNode;
 }
 
@@ -15,6 +16,7 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
   pageWidth,
   pageHeight,
   pages,
+  targetPages,
   children,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -96,6 +98,8 @@ export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
               widthPx={pageWidthPx}
               heightPx={pageHeightPx}
               pageGapPx={PAGE_GAP}
+              targetPages={targetPages}
+              totalPages={pages}
             />
           ))}
           {children}

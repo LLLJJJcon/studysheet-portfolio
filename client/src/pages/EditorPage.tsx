@@ -753,6 +753,7 @@ body {
           pageWidth={pageWidthMm}
           pageHeight={pageConfig?.height || 297}
           pages={detectedPages}
+          targetPages={pageConfig?.pages}
         >
           <CanvasRenderer
             pageWidthPx={pageWidthPx}
