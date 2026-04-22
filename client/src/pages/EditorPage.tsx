@@ -518,26 +518,34 @@ body {
     let chunkContent = '';
     let sourceStart = '';
     let sourceEnd = '';
+    let chunkSourceFiles: string[] = [];
     let sourceFileId = '';
+
     for (const c of containers) {
       const ch = c.chunks.find((ck: any) => ck.nodeId === sourceViewerNodeId);
       if (ch) {
         chunkContent = ch.content || '';
         sourceStart = ch.sourceStart || '';
         sourceEnd = ch.sourceEnd || '';
+        chunkSourceFiles = (ch as any).sourceFiles || [];
         break;
       }
     }
-    const findSrc = (node: any, target: string, parentSrc?: string): string | undefined => {
-      const src = node.sourceFile || parentSrc;
-      if (node.nodeId === target) return src;
-      for (const child of node.children || []) {
-        const found = findSrc(child, target, src);
-        if (found) return found;
+
+    if (chunkSourceFiles.length > 0) {
+      sourceFileId = chunkSourceFiles[0];
+    } else {
+      const findSrc = (node: any, target: string, parentSrc?: string): string | undefined => {
+        const src = node.sourceFile || parentSrc;
+        if (node.nodeId === target) return src;
+        for (const child of node.children || []) {
+          const found = findSrc(child, target, src);
+          if (found) return found;
+        }
+      };
+      if (tree) {
+        sourceFileId = findSrc(tree, sourceViewerNodeId) || '';
       }
-    };
-    if (tree) {
-      sourceFileId = findSrc(tree, sourceViewerNodeId) || '';
     }
     if (!sourceFileId) return null;
     return { courseId: id, sourceFile: sourceFileId, chunkContent, sourceStart, sourceEnd };

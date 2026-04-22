@@ -80,6 +80,7 @@ export const generationController = {
             name: nodeNames.get(chunk.nodeId) || '',
             sourceStart: chunkData?.sourceStart || '',
             sourceEnd: chunkData?.sourceEnd || '',
+            sourceFiles: chunkData?.sourceFiles || [],
           };
         }),
       }));
@@ -280,6 +281,7 @@ export const generationController = {
             name: nodeNames.get(chunk.nodeId) || '',
             sourceStart: chunkData?.sourceStart || '',
             sourceEnd: chunkData?.sourceEnd || '',
+            sourceFiles: chunkData?.sourceFiles || [],
           };
         }),
       }));
