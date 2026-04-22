@@ -4,7 +4,7 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 interface FileUploaderProps {
   courseId: string;
-  onUploadComplete: () => void;
+  onUploadComplete: (newFileIds: string[]) => void;
 }
 
 export function FileUploader({ courseId, onUploadComplete }: FileUploaderProps) {
@@ -46,8 +46,12 @@ export function FileUploader({ courseId, onUploadComplete }: FileUploaderProps) 
         throw new Error(message);
       }
 
+      const data = await response.json();
+      const uploadedFileIds: string[] = (data.course?.files || [])
+        .slice(-files.length)
+        .map((f: { fileId: string }) => f.fileId);
       setProgress('Upload successful!');
-      onUploadComplete();
+      onUploadComplete(uploadedFileIds);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Upload failed, please retry';
       setProgress(message);

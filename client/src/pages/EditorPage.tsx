@@ -46,6 +46,9 @@ export const EditorPage: React.FC = () => {
   const [localFontSize, setLocalFontSize] = useState<number>(0);
   const [sourceViewerNodeId, setSourceViewerNodeId] = useState<string | null>(null);
   const [detectedPages, setDetectedPages] = useState(1);
+  const [pendingNewFileIds, setPendingNewFileIds] = useState<string[]>([]);
+  const setMergeProgress = useGenerationStore((s) => s.setMergeProgress);
+  const setMergeStatusText = useGenerationStore((s) => s.setMergeStatusText);
 
   const handlePagesDetected = useCallback((pages: number) => {
     setDetectedPages(pages);
@@ -379,6 +382,135 @@ body {
     }
   };
 
+  const handleStartIncrementalMerge = async () => {
+    if (!id || generating || pendingNewFileIds.length === 0) return;
+    setGenerating(true);
+    setShowUploadArea(false);
+    setPhase('merge:running');
+    setMergeProgress(0);
+    setMergeStatusText('Starting incremental merge...');
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const url = generationApi.getIncrementalMergeUrl(id);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ newFileIds: pendingNewFileIds }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Merge failed' }));
+        setError({ message: err.error || 'Merge failed', retryable: true });
+        setGenerating(false);
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) return;
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        let pendingEvent = '';
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            pendingEvent = line.slice(7).trim();
+          } else if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (pendingEvent) {
+                handleMergeSSEEvent(pendingEvent, data);
+                pendingEvent = '';
+              }
+            } catch { /* skip */ }
+          }
+        }
+      }
+    } catch {
+      setError({ message: 'Network error during merge', retryable: true });
+    } finally {
+      setGenerating(false);
+      setPendingNewFileIds([]);
+    }
+  };
+
+  const handleMergeSSEEvent = (event: string, data: Record<string, unknown>) => {
+    switch (event) {
+      case 'merge:start':
+        setMergeProgress(5);
+        setMergeStatusText('Parsing new files...');
+        break;
+      case 'merge:new-generation-start':
+        setMergeProgress(10);
+        setMergeStatusText('Generating new content...');
+        break;
+      case 'merge:new-generation-complete':
+        setMergeProgress(40);
+        setMergeStatusText('New content generated. Comparing trees...');
+        break;
+      case 'merge:diff-start':
+        setMergeProgress(45);
+        setMergeStatusText('Comparing trees...');
+        break;
+      case 'merge:diff-complete':
+        setMergeProgress(60);
+        setMergeStatusText('Merge plan ready.');
+        break;
+      case 'merge:content-merge-start':
+        setMergeProgress(62);
+        setMergeStatusText('Merging content...');
+        break;
+      case 'merge:content-merge-progress': {
+        const completed = data.completed as number || 0;
+        const total = data.total as number || 1;
+        const pct = 62 + Math.round((completed / total) * 13);
+        setMergeProgress(pct);
+        setMergeStatusText(`Merging content (${completed}/${total})...`);
+        break;
+      }
+      case 'merge:executing':
+        setMergeProgress(78);
+        setMergeStatusText('Applying changes...');
+        break;
+      case 'merge:layout-start':
+        setMergeProgress(85);
+        setMergeStatusText('Updating layout...');
+        break;
+      case 'merge:complete':
+        setMergeProgress(100);
+        setMergeStatusText('Merge complete!');
+        setPhase('done');
+        if (data.tree) setTree(data.tree as any);
+        if (data.layout) {
+          const layout = data.layout as { fontSize: number; lineHeight: number; containers: unknown[] };
+          useCanvasStore.getState().setLayout(
+            layout.containers as any[], layout.fontSize, layout.lineHeight
+          );
+        }
+        if (id) fetchCourse(id);
+        break;
+      case 'error':
+        setError({ message: data.message as string || 'Merge error', retryable: data.retryable as boolean ?? false });
+        break;
+      case 'done':
+        break;
+    }
+  };
+
   // Resolve source viewer data from nodeId (must be before early return to keep hook order stable)
   const sourceViewerData = useMemo(() => {
     if (!id || !sourceViewerNodeId) return null;
@@ -522,7 +654,7 @@ body {
       {/* Upload + Generate area (when no tree yet OR user toggled it) */}
       {(!tree && (phase === 'idle' || phase === 'error') || showUploadArea) && id && (
         <div className="px-4 py-4 space-y-3 border-b border-gray-200">
-          <FileUploader courseId={id} onUploadComplete={() => fetchCourse(id)} />
+          <FileUploader courseId={id} onUploadComplete={(newFileIds) => { setPendingNewFileIds(newFileIds); fetchCourse(id); }} />
 
           {/* File list */}
           {currentCourse.files && currentCourse.files.length > 0 && (
@@ -550,13 +682,32 @@ body {
                   </li>
                 ))}
               </ul>
-              <button
-                onClick={handleStartGeneration}
-                disabled={generating}
-                className="w-full py-2.5 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 font-medium"
-              >
-                {generating ? 'Generating...' : tree ? 'Regenerate' : 'Start generation'}
-              </button>
+              {tree && pendingNewFileIds.length > 0 ? (
+                <div className="space-y-2">
+                  <button
+                    onClick={handleStartIncrementalMerge}
+                    disabled={generating}
+                    className="w-full py-2.5 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 font-medium"
+                  >
+                    {generating ? 'Merging...' : 'Incremental Merge'}
+                  </button>
+                  <button
+                    onClick={handleStartGeneration}
+                    disabled={generating}
+                    className="w-full py-1.5 px-4 text-xs text-gray-400 hover:text-gray-600"
+                  >
+                    Full Regenerate (overwrites current content)
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleStartGeneration}
+                  disabled={generating}
+                  className="w-full py-2.5 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 font-medium"
+                >
+                  {generating ? 'Generating...' : tree ? 'Regenerate' : 'Start generation'}
+                </button>
+              )}
               {showUploadArea && (
                 <button
                   onClick={() => setShowUploadArea(false)}
