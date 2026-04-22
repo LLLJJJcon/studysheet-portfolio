@@ -206,8 +206,10 @@ export const GenerationStatus: React.FC = () => {
         </div>
       )}
 
-      {/* Streaming console */}
-      {isActive && streamingContent && (
+      {/* Streaming console — only during full generation (merge pipeline
+          doesn't stream raw LLM tokens to this view, so any content here
+          would be stale from a previous run). */}
+      {isActive && phase !== 'merge:running' && streamingContent && (
         <div
           ref={streamRef}
           className="mt-3 bg-gray-900 rounded-md p-3 max-h-32 overflow-y-auto font-mono text-[10px] leading-relaxed text-green-400 whitespace-pre-wrap break-all select-none opacity-70"
