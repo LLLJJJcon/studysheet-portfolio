@@ -177,6 +177,7 @@ function buildFallbackTree(courseName: string, files: Array<{ filename: string }
     name: courseName,
     children: files.map((f) => ({
       name: f.filename,
+      importance: 'Important',
       sourceFile: f.filename,
       children: [],
     })),
@@ -415,7 +416,10 @@ export const generationOrchestrator = {
       }
 
       // Assign UUIDs to all nodes
-      const treeWithIds = assignNodeIds(parsedTree);
+      const treeWithIds = stripFileNameNodes(
+        assignNodeIds(parsedTree),
+        filesForL1.map(f => f.filename)
+      );
 
       // Save to MongoDB
       await ContentTree.findOneAndUpdate(
@@ -454,10 +458,19 @@ export const generationOrchestrator = {
         const promises = batch.map(async (subtree) => {
           let l2Response = '';
           try {
-            // Determine source content for this subtree
-            const sourceContentRaw = subtree.sourceFile
-              ? fileContentMap.get(subtree.sourceFile) || allContent
-              : allContent;
+            // Determine source content for this subtree from leaf sourceFile values
+            const subtreeSources = collectSourceFiles(subtree);
+            let sourceContentRaw = '';
+            if (subtreeSources.size > 0) {
+              const parts: string[] = [];
+              for (const sf of subtreeSources) {
+                const fc = fileContentMap.get(sf);
+                if (fc) parts.push(fc);
+              }
+              sourceContentRaw = parts.length > 0 ? parts.join('\n\n') : allContent;
+            } else {
+              sourceContentRaw = allContent;
+            }
 
             const sourceContent = truncateForLLM(sourceContentRaw, MAX_L2_SOURCE_CHARS);
             if (!sourceContent.trim()) {
@@ -484,6 +497,7 @@ export const generationOrchestrator = {
               const leafNode = findNodeById(subtree, c.node_id);
               const importance = leafNode?.importance || 'Important';
 
+              const leafSourceFile = leafNode?.sourceFile;
               await chunkService.upsertChunk(
                 courseId,
                 c.node_id,
@@ -491,7 +505,8 @@ export const generationOrchestrator = {
                 c.word_count || 0,
                 importance,
                 c.source_start || '',
-                c.source_end || ''
+                c.source_end || '',
+                leafSourceFile ? [leafSourceFile] : undefined
               );
             }
 
@@ -541,10 +556,19 @@ export const generationOrchestrator = {
 
         for (const { subtree, nodeIds } of missingBySubtree.values()) {
           try {
-            const sourceContentRaw = subtree.sourceFile
-              ? fileContentMap.get(subtree.sourceFile) || allContent
-              : allContent;
-            const sourceContent = truncateForLLM(sourceContentRaw, MAX_L2_SOURCE_CHARS);
+            const retrySources = collectSourceFiles(subtree);
+            let retrySourceRaw = '';
+            if (retrySources.size > 0) {
+              const parts: string[] = [];
+              for (const sf of retrySources) {
+                const fc = fileContentMap.get(sf);
+                if (fc) parts.push(fc);
+              }
+              retrySourceRaw = parts.length > 0 ? parts.join('\n\n') : allContent;
+            } else {
+              retrySourceRaw = allContent;
+            }
+            const sourceContent = truncateForLLM(retrySourceRaw, MAX_L2_SOURCE_CHARS);
             const l2Messages = buildL2Prompt(course.name, sourceContent, subtree);
             const l2Retry = await streamCollect(
               provider,
@@ -559,6 +583,7 @@ export const generationOrchestrator = {
               if (nodeIds.includes(c.node_id)) {
                 const leafNode = findNodeById(subtree, c.node_id);
                 const importance = leafNode?.importance || 'Important';
+                const leafSourceFile = leafNode?.sourceFile;
                 await chunkService.upsertChunk(
                   courseId,
                   c.node_id,
@@ -566,7 +591,8 @@ export const generationOrchestrator = {
                   c.word_count || 0,
                   importance,
                   c.source_start || '',
-                  c.source_end || ''
+                  c.source_end || '',
+                  leafSourceFile ? [leafSourceFile] : undefined
                 );
               }
             }
@@ -680,6 +706,7 @@ export const generationOrchestrator = {
             content: chunkData?.content || '',
             importance: chunkData?.importance || 'Important',
             name: nodeNames.get(chunk.nodeId) || '',
+            sourceFiles: (chunkData as any)?.sourceFiles || [],
           };
         }),
       }));
