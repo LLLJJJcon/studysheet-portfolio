@@ -13,6 +13,7 @@ const PHASE_LABELS: Record<string, string> = {
   'l4:complete': 'L4: Formatting completed',
   done: 'Generation completed',
   error: 'Error',
+  'merge:running': 'Incremental Merge in progress...',
 };
 
 const IMPORTANCE_LABELS: Record<string, string> = {
@@ -31,6 +32,8 @@ export const GenerationStatus: React.FC = () => {
   const l3CompletedLevels = useGenerationStore((s) => s.l3CompletedLevels);
   const totalWordCount = useGenerationStore((s) => s.totalWordCount);
   const streamingContent = useGenerationStore((s) => s.streamingContent);
+  const mergeProgress = useGenerationStore((s) => s.mergeProgress);
+  const mergeStatusText = useGenerationStore((s) => s.mergeStatusText);
   const streamRef = useRef<HTMLDivElement>(null);
   const [elapsed, setElapsed] = useState(0);
   const isActive = !['idle', 'done', 'error'].includes(phase);
@@ -147,6 +150,18 @@ export const GenerationStatus: React.FC = () => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {phase === 'merge:running' && (
+        <div className="space-y-2">
+          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-green-500 rounded-full transition-all duration-500"
+              style={{ width: `${mergeProgress}%` }}
+            />
+          </div>
+          <div className="text-xs text-gray-500">{mergeStatusText}</div>
         </div>
       )}
 
