@@ -55,45 +55,75 @@ export async function streamCollect(
 }
 
 /**
+ * Strip reasoning-model preambles like <think>…</think>, <reasoning>…</reasoning>,
+ * <analysis>…</analysis>. Also drops an unclosed leading <think> block (streaming
+ * that never emitted the closing tag) by cutting at the next JSON/code-fence start.
+ */
+function stripReasoningBlocks(text: string): string {
+  let cleaned = text.replace(/<(think|reasoning|analysis|reflection|scratchpad)>[\s\S]*?<\/\1>/gi, '');
+
+  const openMatch = cleaned.match(/<(think|reasoning|analysis|reflection|scratchpad)>/i);
+  if (openMatch && openMatch.index !== undefined) {
+    const after = cleaned.slice(openMatch.index);
+    const fenceIdx = after.search(/```/);
+    const braceIdx = after.search(/[{\[]/);
+    const candidates = [fenceIdx, braceIdx].filter((i) => i > 0);
+    if (candidates.length > 0) {
+      cleaned = cleaned.slice(0, openMatch.index) + after.slice(Math.min(...candidates));
+    } else {
+      cleaned = cleaned.slice(0, openMatch.index);
+    }
+  }
+
+  return cleaned.trim();
+}
+
+/**
  * Extract JSON from LLM output that may contain markdown code blocks,
- * leading/trailing text, or other non-JSON content.
+ * leading/trailing text, reasoning-model preambles, or other non-JSON content.
  */
 export function extractJSON(raw: string): unknown {
-  // 1. Try direct parse first
-  const trimmed = raw.trim();
+  const trimmed = stripReasoningBlocks(raw);
   try {
     return JSON.parse(trimmed);
   } catch { /* continue */ }
 
   // 2. Try to extract from markdown code block: ```json ... ``` or ``` ... ```
-  const codeBlockMatch = trimmed.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
-  if (codeBlockMatch) {
+  //    Prefer the last code block (LLMs sometimes quote example input above).
+  const codeBlocks = [...trimmed.matchAll(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/g)];
+  for (const m of codeBlocks.reverse()) {
     try {
-      return JSON.parse(codeBlockMatch[1].trim());
+      return JSON.parse(m[1].trim());
     } catch { /* continue */ }
   }
 
-  // 3. Try to find the outermost { ... } or [ ... ]
-  let start = trimmed.indexOf('{');
-  const startArr = trimmed.indexOf('[');
-  if (startArr !== -1 && (start === -1 || startArr < start)) start = startArr;
-  if (start !== -1) {
-    const isArray = trimmed[start] === '[';
-    const closeChar = isArray ? ']' : '}';
+  // 3. Scan for the first balanced { ... } or [ ... ] that actually parses.
+  //    Uses a string-aware scanner so braces inside strings don't break balancing.
+  for (let i = 0; i < trimmed.length; i++) {
+    const ch = trimmed[i];
+    if (ch !== '{' && ch !== '[') continue;
+
+    const closeChar = ch === '{' ? '}' : ']';
     let depth = 0;
-    let end = -1;
-    for (let i = start; i < trimmed.length; i++) {
-      const ch = trimmed[i];
-      if (ch === '{' || ch === '[') depth++;
-      else if (ch === '}' || ch === ']') {
+    let inStr = false;
+    let escape = false;
+    for (let j = i; j < trimmed.length; j++) {
+      const c = trimmed[j];
+      if (escape) { escape = false; continue; }
+      if (c === '\\') { escape = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (c === '{' || c === '[') depth++;
+      else if (c === '}' || c === ']') {
         depth--;
-        if (depth === 0) { end = i; break; }
+        if (depth === 0) {
+          if (c !== closeChar) break;
+          try {
+            return JSON.parse(trimmed.substring(i, j + 1));
+          } catch { /* try next candidate */ }
+          break;
+        }
       }
-    }
-    if (end !== -1) {
-      try {
-        return JSON.parse(trimmed.substring(start, end + 1));
-      } catch { /* continue */ }
     }
   }
 

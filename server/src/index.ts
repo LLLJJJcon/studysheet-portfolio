@@ -3,6 +3,15 @@ import { config } from './config';
 import { connectDatabase } from './config/database';
 import { Course } from './models/Course';
 
+process.on('unhandledRejection', (reason) => {
+  const msg = reason instanceof Error ? (reason.stack || reason.message) : String(reason);
+  console.error('[unhandledRejection] Caught (process kept alive):\n' + msg);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException] Caught (process kept alive):\n' + (err.stack || err.message));
+});
+
 const start = async () => {
   try {
     await connectDatabase();
