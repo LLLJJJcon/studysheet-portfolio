@@ -83,6 +83,7 @@ export const compressionService = {
               for await (const streamChunk of provider.chatStream({
                 messages,
                 temperature: 0.2,
+                signal,
               })) {
                 throwIfCancelled(signal);
                 if (streamChunk.content) {

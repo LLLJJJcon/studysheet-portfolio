@@ -43,7 +43,9 @@ export async function streamCollect(
   return withRetry(
     async () => {
       let result = '';
-      for await (const chunk of provider.chatStream(params as any)) {
+      // Threading `signal` into the provider lets the rate-limiter's
+      // throttle sleep (once 429 activates it) be interrupted by cancel.
+      for await (const chunk of provider.chatStream({ ...(params as any), signal })) {
         // Abort mid-stream if the user cancelled: we stop consuming chunks
         // and bubble the cancellation up so the retry loop won't relaunch.
         throwIfCancelled(signal);

@@ -9,6 +9,11 @@ export interface ChatParams {
   temperature?: number;
   maxTokens?: number;
   responseFormat?: 'text' | 'json';
+  /**
+   * Optional abort signal. Currently consumed by the provider wrapper
+   * (rate-limiter waits become abortable); individual providers may ignore it.
+   */
+  signal?: AbortSignal;
 }
 
 export interface ChatResponse {
@@ -43,6 +48,7 @@ export interface AgentParams {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  signal?: AbortSignal;
 }
 
 export interface AgentEvent {
