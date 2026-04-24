@@ -23,6 +23,11 @@ import {
   collectSourceFiles,
 } from './generationOrchestrator';
 import { validateMergeOperations, MergeOperation } from './mergeValidator';
+import {
+  cancellationRegistry,
+  throwIfCancelled,
+  isCancellation,
+} from './cancellationRegistry';
 import { initSSE, sendSSE, endSSE, sendSSEError } from '../utils/sseHelper';
 import { courseService } from './courseService';
 import { chunkService } from './chunkService';
@@ -154,6 +159,15 @@ export const incrementalMergeService = {
   ): Promise<void> {
     initSSE(res);
 
+    const controller = cancellationRegistry.register(courseId);
+    const { signal } = controller;
+    const onClose = () => {
+      if (!res.writableEnded && !signal.aborted) {
+        controller.abort();
+      }
+    };
+    res.on('close', onClose);
+
     try {
       const user = await User.findById(userId);
       if (!user) { sendSSEError(res, 'User not found', false); return; }
@@ -244,9 +258,12 @@ export const incrementalMergeService = {
         l1Response = await streamCollect(
           provider,
           { messages: l1Messages, responseFormat: 'json', temperature: 0.3 },
-          2
+          2,
+          undefined,
+          signal
         );
       } catch (err) {
+        if (isCancellation(err)) throw err;
         const mapped = mapLLMErrorToUserMessage(err);
         sendSSEError(res, mapped.message, mapped.retryable);
         await courseService.updateStatus(courseId, 'editing');
@@ -282,6 +299,7 @@ export const incrementalMergeService = {
 
       const secondLevelNodes = tempTree.children || [];
       for (let i = 0; i < secondLevelNodes.length; i += L2_CONCURRENCY) {
+        throwIfCancelled(signal);
         const batch = secondLevelNodes.slice(i, i + L2_CONCURRENCY);
         const promises = batch.map(async (subtree) => {
           try {
@@ -304,7 +322,9 @@ export const incrementalMergeService = {
             const l2Response = await streamCollect(
               provider,
               { messages: l2Messages, responseFormat: 'json', temperature: 0.3 },
-              2
+              2,
+              undefined,
+              signal
             );
 
             const parsed = extractJSON(l2Response) as Record<string, unknown>;
@@ -329,6 +349,7 @@ export const incrementalMergeService = {
           }
         });
         await Promise.allSettled(promises);
+        throwIfCancelled(signal);
       }
 
       if (tempChunks.size === 0) {
@@ -357,11 +378,14 @@ export const incrementalMergeService = {
 
       let fatalProviderError: unknown = null;
       for (let attempt = 0; attempt < MAX_STAGE3_RETRIES; attempt++) {
+        throwIfCancelled(signal);
         try {
           const diffResponse = await streamCollect(
             provider,
             { messages: diffMessages, responseFormat: 'json', temperature: 0.2 },
-            1
+            1,
+            undefined,
+            signal
           );
           const parsed = extractJSON(diffResponse);
 
@@ -387,6 +411,7 @@ export const incrementalMergeService = {
             bestMissingLeaves = validation.missingLeafIds;
           }
         } catch (err) {
+          if (isCancellation(err)) throw err;
           console.warn(`Merge diff attempt ${attempt + 1} error:`, err);
           if (isFatalProviderError(err)) {
             fatalProviderError = err;
@@ -411,6 +436,8 @@ export const incrementalMergeService = {
             provider,
             { messages: repairMessages, responseFormat: 'json', temperature: 0.2 },
             1,
+            undefined,
+            signal,
           );
           const repairParsed = extractJSON(repairResponse);
           const missingSet = new Set(bestMissingLeaves);
@@ -440,6 +467,7 @@ export const incrementalMergeService = {
             }
           }
         } catch (err) {
+          if (isCancellation(err)) throw err;
           console.warn('Merge diff repair pass error:', err);
           if (isFatalProviderError(err)) {
             fatalProviderError = err;
@@ -504,6 +532,7 @@ export const incrementalMergeService = {
 
         let stage5FatalError: unknown = null;
         for (let mi = 0; mi < mergeOps.length; mi++) {
+          throwIfCancelled(signal);
           const mop = mergeOps[mi];
           const existingChunk = await chunkService.getChunksByNodeIds(courseId, [mop.existing_node_id!]);
           const existingContent = existingChunk[0]?.content || '';
@@ -517,17 +546,21 @@ export const incrementalMergeService = {
           const mergeMessages = buildMergeChunkContentPrompt(existingContent, newContent, nodeName, importance);
 
           for (let attempt = 0; attempt < MAX_STAGE5_RETRIES; attempt++) {
+            throwIfCancelled(signal);
             try {
               const mergeResponse = await streamCollect(
                 provider,
                 { messages: mergeMessages, temperature: 0.3 },
-                1
+                1,
+                undefined,
+                signal
               );
               if (mergeResponse.trim().length > 0) {
                 merged = mergeResponse.trim();
                 break;
               }
             } catch (err) {
+              if (isCancellation(err)) throw err;
               console.warn(`Content merge attempt ${attempt + 1} failed for ${mop.existing_node_id}:`, err);
               if (isFatalProviderError(err)) {
                 stage5FatalError = err;
@@ -641,6 +674,7 @@ export const incrementalMergeService = {
       );
 
       // ── Stage 7: Re-layout ──
+      throwIfCancelled(signal);
       sendSSE(res, 'merge:layout-start', {});
 
       const allChunks = await chunkService.getChunksByCourse(courseId);
@@ -657,7 +691,7 @@ export const incrementalMergeService = {
           pages: course.pageConfig.pages,
           columns: (course.pageConfig as any).columns,
         },
-        fontSize, lineHeight, provider
+        fontSize, lineHeight, provider, signal
       );
 
       // ── Stage 8: Version snapshot ──
@@ -707,10 +741,22 @@ export const incrementalMergeService = {
       await courseService.updateStatus(courseId, 'editing');
       endSSE(res);
     } catch (error) {
-      console.error('Incremental merge error:', error);
-      const mapped = mapLLMErrorToUserMessage(error);
-      sendSSEError(res, mapped.message, mapped.retryable);
-      await courseService.updateStatus(courseId, 'editing').catch(() => {});
+      if (isCancellation(error)) {
+        console.log(`[merge] cancelled for course ${courseId}`);
+        try {
+          sendSSE(res, 'cancelled', { message: 'Merge cancelled by user' });
+          endSSE(res);
+        } catch { /* client already gone */ }
+        await courseService.updateStatus(courseId, 'editing').catch(() => {});
+      } else {
+        console.error('Incremental merge error:', error);
+        const mapped = mapLLMErrorToUserMessage(error);
+        sendSSEError(res, mapped.message, mapped.retryable);
+        await courseService.updateStatus(courseId, 'editing').catch(() => {});
+      }
+    } finally {
+      res.off('close', onClose);
+      cancellationRegistry.release(courseId);
     }
   },
 };

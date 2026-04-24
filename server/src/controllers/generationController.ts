@@ -18,6 +18,7 @@ import { fileConversionService } from '../services/fileConversionService';
 import { runChunkChatPipeline } from '../services/chunkChatService';
 import { chunkChatSchema } from '../middleware/validation';
 import { incrementalMergeService } from '../services/incrementalMergeService';
+import { cancellationRegistry } from '../services/cancellationRegistry';
 
 export const generationController = {
   async startGeneration(req: AuthRequest, res: Response): Promise<void> {
@@ -539,6 +540,33 @@ export const generationController = {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'An error occurred';
       sendSSEError(res, message, false);
+    }
+  },
+
+  async cancelGeneration(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const courseId = req.params.id;
+      const userId = req.user!.userId;
+
+      // Authorize: only the owner of the course can cancel.
+      const course = await Course.findOne({ _id: courseId, userId }).select('_id status');
+      if (!course) {
+        res.status(404).json({ error: 'Course not found' });
+        return;
+      }
+
+      const cancelled = cancellationRegistry.cancel(courseId);
+      if (!cancelled) {
+        // Nothing active — return 200 so the client doesn't treat an idle
+        // state as an error when the user clicks Cancel late.
+        res.json({ cancelled: false, message: 'No active generation or merge to cancel.' });
+        return;
+      }
+
+      res.json({ cancelled: true });
+    } catch (err) {
+      console.error('cancelGeneration error:', err);
+      res.status(500).json({ error: 'Failed to cancel generation' });
     }
   },
 

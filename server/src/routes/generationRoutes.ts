@@ -9,6 +9,7 @@ router.use(authMiddleware);
 
 router.post('/:id/generate', generationController.startGeneration);
 router.post('/:id/incremental-merge', generationController.startIncrementalMerge);
+router.post('/:id/cancel', generationController.cancelGeneration);
 router.get('/:id/layout', generationController.getLayout);
 router.put('/:id/layout', generationController.saveLayout);
 router.get('/:id/content-tree', generationController.getContentTree);

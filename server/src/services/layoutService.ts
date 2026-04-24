@@ -59,7 +59,8 @@ export const layoutService = {
     pageConfig: PageConfig,
     fontSize: number,
     lineHeight: number,
-    _provider: LLMProvider
+    _provider: LLMProvider,
+    _signal?: AbortSignal
   ): Promise<ILayout> {
     // Pure algorithmic layout — no LLM call
     const { containers } = computeAlgorithmicLayout(

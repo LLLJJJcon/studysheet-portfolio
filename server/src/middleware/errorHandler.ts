@@ -1,10 +1,23 @@
 import { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
+import {
+  abortableSleep,
+  GenerationCancelledError,
+  isCancellation,
+  throwIfCancelled,
+} from '../services/cancellationRegistry';
 
 export interface RetryOptions {
   maxRetries?: number;
   baseDelay?: number;
   onRetry?: (attempt: number, error: Error) => void;
+  /**
+   * When provided, the retry loop becomes cancellable:
+   * - Checks `signal.aborted` before each attempt and before each backoff sleep
+   * - Uses an abortable sleep so a pending 30s+ backoff stops immediately
+   * - Never swallows GenerationCancelledError as a retryable error
+   */
+  signal?: AbortSignal;
 }
 
 export async function withRetry<T>(
@@ -13,13 +26,18 @@ export async function withRetry<T>(
 ): Promise<T> {
   const maxRetries = options.maxRetries ?? 2;
   const baseDelay = options.baseDelay ?? 1000;
+  const signal = options.signal;
 
   let lastError: Error | undefined;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    throwIfCancelled(signal);
     try {
       return await fn();
     } catch (error) {
+      if (isCancellation(error)) {
+        throw error instanceof Error ? error : new GenerationCancelledError();
+      }
       lastError = error instanceof Error ? error : new Error(String(error));
 
       if (attempt === maxRetries) {
@@ -29,7 +47,7 @@ export async function withRetry<T>(
       options.onRetry?.(attempt + 1, lastError);
 
       const delay = baseDelay * Math.pow(2, attempt);
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await abortableSleep(delay, signal);
     }
   }
 

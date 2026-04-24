@@ -15,6 +15,12 @@ import { layoutService } from './layoutService';
 import { fileParserService } from './fileParserService';
 import { calculateFontSize, getLineHeight } from '../utils/fontSizeCalc';
 import { withRetry } from '../middleware/errorHandler';
+import {
+  cancellationRegistry,
+  throwIfCancelled,
+  isCancellation,
+  GenerationCancelledError,
+} from './cancellationRegistry';
 import path from 'path';
 
 const MAX_L1_FILE_CHARS = 15000;
@@ -31,12 +37,16 @@ export async function streamCollect(
   provider: LLMProvider,
   params: { messages: any[]; responseFormat?: string; temperature?: number },
   retries = 2,
-  onChunk?: (text: string) => void
+  onChunk?: (text: string) => void,
+  signal?: AbortSignal
 ): Promise<string> {
   return withRetry(
     async () => {
       let result = '';
       for await (const chunk of provider.chatStream(params as any)) {
+        // Abort mid-stream if the user cancelled: we stop consuming chunks
+        // and bubble the cancellation up so the retry loop won't relaunch.
+        throwIfCancelled(signal);
         if (chunk.content) {
           result += chunk.content;
           onChunk?.(chunk.content);
@@ -47,6 +57,7 @@ export async function streamCollect(
     {
       maxRetries: retries,
       baseDelay: 2000,
+      signal,
       onRetry: (attempt, error) => {
         console.log(`LLM stream retry #${attempt}: ${error.message}`);
       },
@@ -303,6 +314,19 @@ export const generationOrchestrator = {
   async startGeneration(courseId: string, userId: string, res: Response): Promise<void> {
     initSSE(res);
 
+    const controller = cancellationRegistry.register(courseId);
+    const { signal } = controller;
+
+    // If the client drops the connection (closes the tab, aborts the fetch)
+    // before we've finished, treat it as a cancellation so downstream
+    // retries/LLM calls stop immediately.
+    const onClose = () => {
+      if (!res.writableEnded && !signal.aborted) {
+        controller.abort();
+      }
+    };
+    res.on('close', onClose);
+
     try {
       // Get user and course
       const user = await User.findById(userId);
@@ -378,9 +402,11 @@ export const generationOrchestrator = {
           provider,
           { messages: l1Messages, responseFormat: 'json', temperature: 0.3 },
           2,
-          (text) => sendSSE(res, 'l1:chunk', { partialJson: text })
+          (text) => sendSSE(res, 'l1:chunk', { partialJson: text }),
+          signal
         );
       } catch (streamErr) {
+        if (isCancellation(streamErr)) throw streamErr;
         console.error('L1 stream failed:', streamErr instanceof Error ? streamErr.message : streamErr);
         const mapped = mapLLMErrorToUserMessage(streamErr);
         sendSSEError(res, mapped.message, mapped.retryable);
@@ -402,12 +428,14 @@ export const generationOrchestrator = {
             provider,
             { messages: l1Messages, responseFormat: 'json', temperature: 0.1 },
             1,
-            (text) => sendSSE(res, 'l1:chunk', { partialJson: text })
+            (text) => sendSSE(res, 'l1:chunk', { partialJson: text }),
+            signal
           );
           const parsed = extractJSON(fullResponse) as Record<string, unknown>;
           const rawTree = (parsed.tree as Record<string, unknown>) || parsed;
           parsedTree = toSafeNode(rawTree);
         } catch (retryErr) {
+          if (isCancellation(retryErr)) throw retryErr;
           console.error('L1 parse failed. Raw response:', fullResponse.substring(0, 500));
           // Fall back to a minimal tree so downstream stages can still proceed.
           parsedTree = buildFallbackTree(course.name, filesForL1);
@@ -454,6 +482,7 @@ export const generationOrchestrator = {
       // Process subtrees in parallel (up to 3 concurrent)
       const CONCURRENCY = 3;
       for (let i = 0; i < secondLevelNodes.length; i += CONCURRENCY) {
+        throwIfCancelled(signal);
         const batch = secondLevelNodes.slice(i, i + CONCURRENCY);
         const promises = batch.map(async (subtree) => {
           let l2Response = '';
@@ -483,7 +512,8 @@ export const generationOrchestrator = {
               provider,
               { messages: l2Messages, responseFormat: 'json', temperature: 0.3 },
               2,
-              (text) => { sendSSE(res, 'l2:chunk', { text }); }
+              (text) => { sendSSE(res, 'l2:chunk', { text }); },
+              signal
             );
 
             // Parse L2 output
@@ -528,6 +558,9 @@ export const generationOrchestrator = {
         });
 
         await Promise.allSettled(promises);
+        // If any worker bailed out because of a cancellation, stop before the
+        // next batch (otherwise we'd keep firing LLM calls despite the abort).
+        throwIfCancelled(signal);
       }
 
       // ── L2 reconciliation: retry missing leaf chunks ──
@@ -555,6 +588,7 @@ export const generationOrchestrator = {
         }
 
         for (const { subtree, nodeIds } of missingBySubtree.values()) {
+          throwIfCancelled(signal);
           try {
             const retrySources = collectSourceFiles(subtree);
             let retrySourceRaw = '';
@@ -573,7 +607,9 @@ export const generationOrchestrator = {
             const l2Retry = await streamCollect(
               provider,
               { messages: l2Messages, responseFormat: 'json', temperature: 0.1 },
-              1
+              1,
+              undefined,
+              signal
             );
             const parsed = extractJSON(l2Retry) as Record<string, unknown>;
             const chunks = Array.isArray(parsed.chunks)
@@ -597,6 +633,7 @@ export const generationOrchestrator = {
               }
             }
           } catch (e) {
+            if (isCancellation(e)) throw e;
             console.error(`L2 retry failed for subtree ${subtree.name}:`, e);
           }
         }
@@ -615,6 +652,7 @@ export const generationOrchestrator = {
       }
 
       sendSSE(res, 'l2:complete', { totalWordCount: totalWords });
+      throwIfCancelled(signal);
 
       // ----- L3: Compression (serial: Awareness → Important → High-Frequency) -----
       const wordLimit = course.pageConfig.wordLimit;
@@ -639,7 +677,8 @@ export const generationOrchestrator = {
             },
             (level) => {
               sendSSE(res, 'l3:level-complete', { level });
-            }
+            },
+            signal
           );
 
         sendSSE(res, 'l3:complete', {
@@ -663,6 +702,7 @@ export const generationOrchestrator = {
       const lineHeight = getLineHeight(fontSize);
 
       // ----- L4: Initial Layout Generation -----
+      throwIfCancelled(signal);
       sendSSE(res, 'l4:start', { fontSize, lineHeight });
 
       const allChunks = await chunkService.getChunksByCourse(courseId);
@@ -679,7 +719,8 @@ export const generationOrchestrator = {
         },
         fontSize,
         lineHeight,
-        provider
+        provider,
+        signal
       );
 
       // Enrich containers with chunk content for client rendering
@@ -723,11 +764,22 @@ export const generationOrchestrator = {
 
       endSSE(res);
     } catch (error) {
-      console.error('Generation error:', error);
-      const mapped = mapLLMErrorToUserMessage(error);
-      sendSSEError(res, mapped.message, mapped.retryable);
-
-      await courseService.updateStatus(courseId, 'created').catch(() => {});
+      if (isCancellation(error)) {
+        console.log(`[generation] cancelled for course ${courseId}`);
+        try {
+          sendSSE(res, 'cancelled', { message: 'Generation cancelled by user' });
+          endSSE(res);
+        } catch { /* client already gone */ }
+        await courseService.updateStatus(courseId, 'created').catch(() => {});
+      } else {
+        console.error('Generation error:', error);
+        const mapped = mapLLMErrorToUserMessage(error);
+        sendSSEError(res, mapped.message, mapped.retryable);
+        await courseService.updateStatus(courseId, 'created').catch(() => {});
+      }
+    } finally {
+      res.off('close', onClose);
+      cancellationRegistry.release(courseId);
     }
   },
 };

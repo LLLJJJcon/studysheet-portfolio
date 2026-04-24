@@ -4,6 +4,7 @@ import { chunkService } from './chunkService';
 import { countWords } from '../utils/wordCount';
 import { IChunk } from '../models/Chunk';
 import { withRetry } from '../middleware/errorHandler';
+import { throwIfCancelled, isCancellation } from './cancellationRegistry';
 
 // Compression order: least important first
 const COMPRESSION_ORDER = ['Awareness', 'Important', 'High-Frequency'];
@@ -27,7 +28,8 @@ export const compressionService = {
     provider: LLMProvider,
     onChunkCompressed?: (result: CompressionResult, level: string) => void,
     onLevelStart?: (level: string) => void,
-    onLevelComplete?: (level: string) => void
+    onLevelComplete?: (level: string) => void,
+    signal?: AbortSignal
   ): Promise<{ totalWords: number; compressed: boolean }> {
     let totalWords = await chunkService.getTotalWordCount(courseId);
     const threshold = wordLimit * 1.1;
@@ -39,6 +41,7 @@ export const compressionService = {
     let compressed = false;
 
     for (const level of COMPRESSION_ORDER) {
+      throwIfCancelled(signal);
       if (totalWords <= threshold) break;
 
       onLevelStart?.(level);
@@ -60,6 +63,7 @@ export const compressionService = {
       );
 
       for (const chunk of chunks) {
+        throwIfCancelled(signal);
         if (totalWords <= threshold) break;
         if (!chunk.content || chunk.wordCount === 0) continue;
 
@@ -80,15 +84,17 @@ export const compressionService = {
                 messages,
                 temperature: 0.2,
               })) {
+                throwIfCancelled(signal);
                 if (streamChunk.content) {
                   result += streamChunk.content;
                 }
               }
               return result;
             },
-            { maxRetries: 2, baseDelay: 2000 }
+            { maxRetries: 2, baseDelay: 2000, signal }
           );
         } catch (err) {
+          if (isCancellation(err)) throw err;
           console.error(`L3 compression stream failed for chunk ${chunk.nodeId}:`, err instanceof Error ? err.message : err);
           continue; // Skip this chunk, keep original
         }
