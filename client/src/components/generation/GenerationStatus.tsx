@@ -22,7 +22,12 @@ const IMPORTANCE_LABELS: Record<string, string> = {
   'High-Frequency': 'High frequency level',
 };
 
-export const GenerationStatus: React.FC = () => {
+interface GenerationStatusProps {
+  onCancel?: () => void;
+  cancelling?: boolean;
+}
+
+export const GenerationStatus: React.FC<GenerationStatusProps> = ({ onCancel, cancelling = false }) => {
   const phase = useGenerationStore((s) => s.phase);
   const error = useGenerationStore((s) => s.error);
   const l2Progress = useGenerationStore((s) => s.l2Progress);
@@ -92,7 +97,7 @@ export const GenerationStatus: React.FC = () => {
         <span className="text-sm font-semibold text-gray-800">
           {PHASE_LABELS[phase] || phase}
         </span>
-        <span className="ml-auto flex items-center gap-2">
+        <span className="ml-auto flex items-center gap-3">
           {isActive && (
             <span className="text-xs text-gray-400">{formatElapsed(elapsed)}</span>
           )}
@@ -100,6 +105,17 @@ export const GenerationStatus: React.FC = () => {
             <span className="text-xs text-gray-400">
               {totalWordCount.toLocaleString()} Character/Word
             </span>
+          )}
+          {isActive && onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={cancelling}
+              className="text-xs font-medium text-red-600 hover:text-red-700 hover:underline disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed transition-colors"
+              title="Stop the current generation or merge"
+            >
+              {cancelling ? 'Cancelling...' : 'Cancel'}
+            </button>
           )}
         </span>
       </div>

@@ -49,6 +49,11 @@ export const EditorPage: React.FC = () => {
   const [pendingNewFileIds, setPendingNewFileIds] = useState<string[]>([]);
   const setMergeProgress = useGenerationStore((s) => s.setMergeProgress);
   const setMergeStatusText = useGenerationStore((s) => s.setMergeStatusText);
+  // Tracks the AbortController for whichever generation / merge fetch is
+  // currently running, so handleCancel can abort the SSE connection and
+  // short-circuit the reader loop.
+  const generationAbortRef = useRef<AbortController | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const handlePagesDetected = useCallback((pages: number) => {
     setDetectedPages(pages);
@@ -261,11 +266,15 @@ body {
     const token = localStorage.getItem('token');
     if (!token) return;
 
+    const abortController = new AbortController();
+    generationAbortRef.current = abortController;
+
     try {
       const url = generationApi.getGenerateUrl(id);
       const response = await fetch(url, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
+        signal: abortController.signal,
       });
 
       if (!response.ok) {
@@ -307,8 +316,15 @@ body {
         }
       }
     } catch (err) {
-      setError({ message: 'Network error during generation', retryable: true });
+      // AbortError = user clicked Cancel. handleCancel already reset the UI
+      // state so we just swallow it here.
+      if ((err as Error)?.name !== 'AbortError') {
+        setError({ message: 'Network error during generation', retryable: true });
+      }
     } finally {
+      if (generationAbortRef.current === abortController) {
+        generationAbortRef.current = null;
+      }
       setGenerating(false);
     }
   };
@@ -377,6 +393,9 @@ body {
         setPhase('done');
         if (id) fetchCourse(id); // Refresh course data
         break;
+      case 'cancelled':
+        useGenerationStore.getState().reset();
+        break;
       case 'error':
         setError({ message: data.message as string || 'Generation error', retryable: data.retryable as boolean ?? false });
         break;
@@ -395,6 +414,10 @@ body {
     const token = localStorage.getItem('token');
     if (!token) return;
 
+    const abortController = new AbortController();
+    generationAbortRef.current = abortController;
+    let mergeSucceeded = false;
+
     try {
       const url = generationApi.getIncrementalMergeUrl(id);
       const response = await fetch(url, {
@@ -404,6 +427,7 @@ body {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ newFileIds: pendingNewFileIds }),
+        signal: abortController.signal,
       });
 
       if (!response.ok) {
@@ -414,7 +438,6 @@ body {
         return;
       }
 
-      let mergeSucceeded = false;
       const reader = response.body?.getReader();
       if (!reader) { setGenerating(false); return; }
 
@@ -445,15 +468,38 @@ body {
           }
         }
       }
-    } catch {
-      setError({ message: 'Network error during merge', retryable: true });
+    } catch (err) {
+      if ((err as Error)?.name !== 'AbortError') {
+        setError({ message: 'Network error during merge', retryable: true });
+      }
     } finally {
+      if (generationAbortRef.current === abortController) {
+        generationAbortRef.current = null;
+      }
       setGenerating(false);
       // Only clear pending uploads if the merge actually completed; otherwise
       // keep them so the user can retry without re-uploading.
       if (mergeSucceeded) setPendingNewFileIds([]);
     }
   };
+
+  // Cancel the currently running generation / incremental merge. Tells the
+  // server to abort (so it stops burning LLM quota inside retry backoffs),
+  // aborts the client-side fetch so the SSE reader loop exits, then resets
+  // the store back to idle so the progress card disappears.
+  const handleCancel = useCallback(async () => {
+    if (!id || cancelling) return;
+    setCancelling(true);
+    try {
+      await generationApi.cancelGeneration(id).catch(() => false);
+      generationAbortRef.current?.abort();
+      generationAbortRef.current = null;
+      useGenerationStore.getState().reset();
+      setGenerating(false);
+    } finally {
+      setCancelling(false);
+    }
+  }, [id, cancelling]);
 
   const handleMergeSSEEvent = (event: string, data: Record<string, unknown>) => {
     switch (event) {
@@ -512,6 +558,9 @@ body {
         break;
       case 'error':
         setError({ message: data.message as string || 'Merge error', retryable: data.retryable as boolean ?? false });
+        break;
+      case 'cancelled':
+        useGenerationStore.getState().reset();
         break;
       case 'done':
         break;
@@ -662,7 +711,7 @@ body {
       {/* Generation status */}
       {phase !== 'idle' && (
         <div className="px-4 py-2">
-          <GenerationStatus />
+          <GenerationStatus onCancel={handleCancel} cancelling={cancelling} />
         </div>
       )}
 

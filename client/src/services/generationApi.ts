@@ -36,6 +36,20 @@ export const generationApi = {
     return `${API_URL}/courses/${courseId}/incremental-merge`;
   },
 
+  async cancelGeneration(courseId: string): Promise<boolean> {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+    try {
+      const response = await fetch(`${API_URL}/courses/${courseId}/cancel`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  },
+
   async uploadImage(courseId: string, file: File): Promise<{ url: string; filename: string } | null> {
     const token = localStorage.getItem('token');
     if (!token) return null;
