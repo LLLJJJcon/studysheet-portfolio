@@ -10,6 +10,7 @@ import { LLMProvider } from '../llm/LLMProvider';
 import { buildL1Prompt } from '../llm/prompts/L1_treeGeneration';
 import { buildL2Prompt } from '../llm/prompts/L2_chunkGeneration';
 import { buildMergeTreeDiffPrompt } from '../llm/prompts/MergeTreeDiff';
+import { buildMergeTreeDiffRepairPrompt } from '../llm/prompts/MergeTreeDiffRepair';
 import { buildMergeChunkContentPrompt } from '../llm/prompts/MergeChunkContent';
 import {
   streamCollect,
@@ -348,6 +349,12 @@ export const incrementalMergeService = {
       let operations: MergeOperation[] = [];
       let diffSuccess = false;
 
+      // Best-so-far partial result across attempts: the attempt with the
+      // smallest number of uncovered leaves gets kept so we can try to
+      // repair / fall back instead of throwing everything away.
+      let bestPartialOps: MergeOperation[] = [];
+      let bestMissingLeaves: string[] | null = null;
+
       let fatalProviderError: unknown = null;
       for (let attempt = 0; attempt < MAX_STAGE3_RETRIES; attempt++) {
         try {
@@ -364,8 +371,20 @@ export const incrementalMergeService = {
             operations = validation.operations;
             diffSuccess = true;
             break;
-          } else {
-            console.warn(`Merge validation attempt ${attempt + 1} failed:`, validation.errors);
+          }
+          console.warn(
+            `Merge validation attempt ${attempt + 1} failed (${validation.missingLeafIds.length} leaves missing, coverageOnly=${validation.coverageOnly}):`,
+            validation.errors,
+          );
+          // Keep the structurally-valid subset from the attempt that missed
+          // the fewest leaves.
+          if (
+            validation.coverageOnly &&
+            (bestMissingLeaves === null ||
+              validation.missingLeafIds.length < bestMissingLeaves.length)
+          ) {
+            bestPartialOps = validation.cleanedOperations;
+            bestMissingLeaves = validation.missingLeafIds;
           }
         } catch (err) {
           console.warn(`Merge diff attempt ${attempt + 1} error:`, err);
@@ -376,7 +395,90 @@ export const incrementalMergeService = {
         }
       }
 
-      if (fatalProviderError) {
+      // ── Stage 3b: Repair — if the main loop didn't produce a clean plan
+      // but we have a mostly-good partial one, ask the LLM to patch just the
+      // missing leaves. Quota-safe: single targeted call.
+      if (!diffSuccess && bestMissingLeaves && bestMissingLeaves.length > 0 && !fatalProviderError) {
+        console.log(`Merge diff repair: attempting to cover ${bestMissingLeaves.length} missing leaves`);
+        try {
+          const repairMessages = buildMergeTreeDiffRepairPrompt(
+            course.name,
+            existingTree,
+            tempTree,
+            bestMissingLeaves,
+          );
+          const repairResponse = await streamCollect(
+            provider,
+            { messages: repairMessages, responseFormat: 'json', temperature: 0.2 },
+            1,
+          );
+          const repairParsed = extractJSON(repairResponse);
+          const missingSet = new Set(bestMissingLeaves);
+          const priorIds = new Set(bestPartialOps.map((o) => o.new_node_id));
+          const combined = [...bestPartialOps];
+          const repairOps = Array.isArray((repairParsed as Record<string, unknown>)?.operations)
+            ? ((repairParsed as { operations: MergeOperation[] }).operations)
+            : [];
+          for (const op of repairOps) {
+            if (op && op.new_node_id && missingSet.has(op.new_node_id) && !priorIds.has(op.new_node_id)) {
+              combined.push(op);
+              priorIds.add(op.new_node_id);
+            }
+          }
+          const revalidated = validateMergeOperations({ operations: combined }, existingTree, tempTree);
+          if (revalidated.valid) {
+            operations = revalidated.operations;
+            diffSuccess = true;
+            console.log('Merge diff repair: fully covered after repair pass');
+          } else {
+            console.warn(
+              `Merge diff repair: still missing ${revalidated.missingLeafIds.length} leaves — will fall back`,
+            );
+            if (revalidated.coverageOnly) {
+              bestPartialOps = revalidated.cleanedOperations;
+              bestMissingLeaves = revalidated.missingLeafIds;
+            }
+          }
+        } catch (err) {
+          console.warn('Merge diff repair pass error:', err);
+          if (isFatalProviderError(err)) {
+            fatalProviderError = err;
+          }
+        }
+      }
+
+      // ── Stage 3c: Deterministic fallback — for any leaves still uncovered,
+      // synthesise `add_node` ops attached to the existing tree root. Keeps
+      // the merge moving forward even when the LLM partially fails or the
+      // provider is rate-limited.
+      if (!diffSuccess && bestMissingLeaves && bestMissingLeaves.length > 0) {
+        console.warn(
+          `Merge diff fallback: auto-generating add_node ops for ${bestMissingLeaves.length} leaves under existing tree root`,
+        );
+        const rootId = existingTree.nodeId;
+        const covered = new Set(bestPartialOps.map((o) => o.new_node_id));
+        const synthesised: MergeOperation[] = [];
+        for (const leafId of bestMissingLeaves) {
+          if (covered.has(leafId)) continue;
+          synthesised.push({
+            op: 'add_node',
+            new_node_id: leafId,
+            target_parent_id: rootId,
+            position: 'after',
+            reason: 'Auto-inserted (LLM diff pass missed this leaf)',
+          });
+        }
+        const combined = [...bestPartialOps, ...synthesised];
+        const finalValidation = validateMergeOperations({ operations: combined }, existingTree, tempTree);
+        if (finalValidation.valid) {
+          operations = finalValidation.operations;
+          diffSuccess = true;
+        } else {
+          console.warn('Merge diff fallback still invalid:', finalValidation.errors.slice(0, 5));
+        }
+      }
+
+      if (fatalProviderError && !diffSuccess) {
         const mapped = mapLLMErrorToUserMessage(fatalProviderError);
         sendSSEError(res, mapped.message, mapped.retryable);
         await courseService.updateStatus(courseId, 'editing');

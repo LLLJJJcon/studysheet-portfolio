@@ -14,6 +14,12 @@ export interface ValidationResult {
   valid: boolean;
   errors: string[];
   operations: MergeOperation[];
+  /** Structurally-valid ops (after dropping ones that reference unknown ids etc). */
+  cleanedOperations: MergeOperation[];
+  /** Leaves in the new tree not covered by any op — used for repair / fallback. */
+  missingLeafIds: string[];
+  /** True if the ONLY problem is coverage (everything else is structurally valid). */
+  coverageOnly: boolean;
 }
 
 function collectNodeIds(node: ITreeNode, ids: Set<string>): void {
@@ -45,15 +51,30 @@ export function validateMergeOperations(
   const errors: string[] = [];
 
   if (!raw || typeof raw !== 'object') {
-    return { valid: false, errors: ['Response is not a JSON object'], operations: [] };
+    return {
+      valid: false,
+      errors: ['Response is not a JSON object'],
+      operations: [],
+      cleanedOperations: [],
+      missingLeafIds: [],
+      coverageOnly: false,
+    };
   }
 
   const obj = raw as Record<string, unknown>;
   if (!Array.isArray(obj.operations)) {
-    return { valid: false, errors: ['Missing "operations" array'], operations: [] };
+    return {
+      valid: false,
+      errors: ['Missing "operations" array'],
+      operations: [],
+      cleanedOperations: [],
+      missingLeafIds: [],
+      coverageOnly: false,
+    };
   }
 
   const operations = obj.operations as MergeOperation[];
+  const cleanedOperations: MergeOperation[] = [];
 
   const existingIds = new Set<string>();
   collectNodeIds(existingTree, existingIds);
@@ -70,6 +91,7 @@ export function validateMergeOperations(
   for (let i = 0; i < operations.length; i++) {
     const op = operations[i];
     const prefix = `Operation ${i}`;
+    let opStructurallyValid = true;
 
     if (!validOps.includes(op.op)) {
       errors.push(`${prefix}: invalid op "${op.op}"`);
@@ -83,12 +105,14 @@ export function validateMergeOperations(
 
     if (seenNewIds.has(op.new_node_id)) {
       errors.push(`${prefix}: new_node_id "${op.new_node_id}" appears in multiple operations`);
+      opStructurallyValid = false;
     }
     seenNewIds.add(op.new_node_id);
 
     if (op.op === 'add_node' || op.op === 'add_subtree') {
       if (!op.target_parent_id || !existingIds.has(op.target_parent_id)) {
         errors.push(`${prefix}: target_parent_id "${op.target_parent_id}" not found in existing tree`);
+        opStructurallyValid = false;
       }
 
       if (op.ref_sibling_id && op.target_parent_id) {
@@ -97,6 +121,7 @@ export function validateMergeOperations(
           const childIds = (parent.children || []).map(c => c.nodeId);
           if (!childIds.includes(op.ref_sibling_id)) {
             errors.push(`${prefix}: ref_sibling_id "${op.ref_sibling_id}" is not a child of target_parent_id "${op.target_parent_id}"`);
+            opStructurallyValid = false;
           }
         }
       }
@@ -105,12 +130,15 @@ export function validateMergeOperations(
     if (op.op === 'merge_chunk') {
       if (!op.existing_node_id || !existingIds.has(op.existing_node_id)) {
         errors.push(`${prefix}: existing_node_id "${op.existing_node_id}" not found in existing tree`);
+        opStructurallyValid = false;
       }
     }
+
+    if (opStructurallyValid) cleanedOperations.push(op);
   }
 
   const coveredLeafIds = new Set<string>();
-  for (const op of operations) {
+  for (const op of cleanedOperations) {
     if (!op.new_node_id) continue;
     if (op.op === 'add_subtree') {
       const subtreeRoot = findNode(newTree, op.new_node_id);
@@ -122,15 +150,24 @@ export function validateMergeOperations(
     }
   }
 
+  const missingLeafIds: string[] = [];
   for (const leafId of newLeafIds) {
     if (!coveredLeafIds.has(leafId)) {
+      missingLeafIds.push(leafId);
       errors.push(`New leaf node "${leafId}" not covered by any operation`);
     }
   }
+
+  const coverageOnly =
+    missingLeafIds.length > 0 &&
+    errors.length === missingLeafIds.length;
 
   return {
     valid: errors.length === 0,
     errors,
     operations: errors.length === 0 ? operations : [],
+    cleanedOperations,
+    missingLeafIds,
+    coverageOnly,
   };
 }
