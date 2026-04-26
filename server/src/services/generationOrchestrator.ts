@@ -219,6 +219,34 @@ export function assignNodeIds(node: Record<string, unknown>): ITreeNode {
   return result;
 }
 
+/**
+ * Resume-generation helper. Deep-clones `node` and drops every leaf whose
+ * nodeId is in `preservedIds` (i.e. that leaf already has a chunk in DB).
+ *
+ * An intermediate node is kept iff at least one of its descendants
+ * survived — otherwise we'd send the LLM an empty branch. Returns `null`
+ * when the whole subtree has no remaining missing leaves; callers should
+ * skip the subtree entirely in that case (no LLM call at all, saving the
+ * most valuable daily quota slot).
+ */
+function pruneSubtreeToMissingLeaves(
+  node: ITreeNode,
+  preservedIds: Set<string>
+): ITreeNode | null {
+  const isLeaf = !node.children || node.children.length === 0;
+  if (isLeaf) {
+    if (preservedIds.has(node.nodeId)) return null;
+    return { ...node, children: [] };
+  }
+  const newChildren: ITreeNode[] = [];
+  for (const child of node.children) {
+    const pruned = pruneSubtreeToMissingLeaves(child, preservedIds);
+    if (pruned) newChildren.push(pruned);
+  }
+  if (newChildren.length === 0) return null;
+  return { ...node, children: newChildren };
+}
+
 function findNodeById(node: ITreeNode, nodeId: string): ITreeNode | null {
   if (node.nodeId === nodeId) return node;
   for (const child of node.children || []) {
@@ -372,8 +400,35 @@ export const generationOrchestrator = {
       // Create LLM provider
       const provider = createProvider(user);
 
-      // ----- L1: Generate global exam-point tree -----
-      sendSSE(res, 'l1:start', {});
+      // ───────── Resume detection ─────────
+      // Reuse a previous run's tree + already-generated chunks when available.
+      // This is the single biggest daily-quota saver: on a retry after a 429
+      // we do NOT re-run L1 (would regenerate nodeIds and invalidate every
+      // existing chunk) and we do NOT wipe chunks before L2 — we only ask
+      // the LLM to fill in the leaves that are still missing.
+      const existingTreeDoc = await ContentTree.findOne({ courseId });
+      const existingChunksAtStart = await chunkService.getChunksByCourse(courseId);
+      const resumeMode = !!existingTreeDoc && existingChunksAtStart.length > 0;
+      if (resumeMode) {
+        console.log(
+          `[resume] Reusing existing tree + ${existingChunksAtStart.length} chunks for course ${courseId}. Skipping L1, L2 will only fill missing leaves.`
+        );
+      }
+
+      let treeWithIds: ITreeNode;
+
+      if (resumeMode) {
+        // Reuse tree from DB; skip L1 LLM call entirely.
+        const treeObj =
+          typeof (existingTreeDoc as { toObject?: () => { tree: ITreeNode } }).toObject === 'function'
+            ? (existingTreeDoc as { toObject: () => { tree: ITreeNode } }).toObject().tree
+            : ((existingTreeDoc as unknown as { tree: ITreeNode }).tree);
+        treeWithIds = JSON.parse(JSON.stringify(treeObj));
+        sendSSE(res, 'l1:start', { resumed: true });
+        sendSSE(res, 'l1:complete', { tree: treeWithIds, resumed: true });
+      } else {
+        // ----- L1: Generate global exam-point tree -----
+        sendSSE(res, 'l1:start', {});
 
       const files = course.files.map((f) => ({
         filename: f.originalName,
@@ -446,7 +501,7 @@ export const generationOrchestrator = {
       }
 
       // Assign UUIDs to all nodes
-      const treeWithIds = stripFileNameNodes(
+      treeWithIds = stripFileNameNodes(
         assignNodeIds(parsedTree),
         filesForL1.map(f => f.filename)
       );
@@ -459,12 +514,17 @@ export const generationOrchestrator = {
       );
 
       sendSSE(res, 'l1:complete', { tree: treeWithIds });
+      } // end of fresh-run (non-resume) L1 branch
 
       // ----- L2: Generate chunks per second-level subtree -----
-      sendSSE(res, 'l2:start', {});
+      sendSSE(res, 'l2:start', { resumed: resumeMode });
 
-      // Clear old chunks from any previous generation
-      await chunkService.deleteChunksByCourse(courseId);
+      // Clear old chunks only on a fresh run; resume keeps existing chunks
+      // (they match the reused tree's nodeIds and must not be thrown away,
+      // otherwise resume has nothing to resume from).
+      if (!resumeMode) {
+        await chunkService.deleteChunksByCourse(courseId);
+      }
 
       // Collect course file content map
       const fileContentMap = new Map<string, string>();
@@ -481,6 +541,20 @@ export const generationOrchestrator = {
       let completedSubtrees = 0;
       const totalSubtrees = secondLevelNodes.length;
 
+      // Build the "already-done" set once. In fresh mode this is empty
+      // (we just wiped the chunks table); in resume mode it holds every
+      // leaf that survived from a previous run. `pruneSubtreeToMissingLeaves`
+      // uses this to shrink the per-subtree prompt so the LLM only
+      // generates content for leaves that are actually missing.
+      const preservedIds = new Set<string>(
+        resumeMode ? existingChunksAtStart.map((c) => c.nodeId) : []
+      );
+      if (resumeMode) {
+        console.log(
+          `[resume] L2 main pass: ${preservedIds.size} leaves already have chunks; any subtree fully preserved will be skipped (0 LLM calls).`
+        );
+      }
+
       // Process subtrees in parallel (up to 3 concurrent)
       const CONCURRENCY = 3;
       for (let i = 0; i < secondLevelNodes.length; i += CONCURRENCY) {
@@ -489,8 +563,25 @@ export const generationOrchestrator = {
         const promises = batch.map(async (subtree) => {
           let l2Response = '';
           try {
-            // Determine source content for this subtree from leaf sourceFile values
-            const subtreeSources = collectSourceFiles(subtree);
+            // Prune the subtree to only the leaves we still need. When
+            // nothing is missing we skip the LLM call entirely — this is
+            // the most impactful daily-quota saver on a resume run.
+            const prunedSubtree = pruneSubtreeToMissingLeaves(subtree, preservedIds);
+            if (!prunedSubtree) {
+              completedSubtrees++;
+              sendSSE(res, 'l2:subtree-complete', {
+                subtreeName: subtree.name,
+                chunkCount: 0,
+                skipped: true,
+                progress: completedSubtrees / Math.max(totalSubtrees, 1),
+              });
+              return;
+            }
+
+            // Determine source content for this subtree from leaf sourceFile
+            // values — use the pruned subtree so we only pull files that
+            // back the leaves we're actually going to regenerate.
+            const subtreeSources = collectSourceFiles(prunedSubtree);
             let sourceContentRaw = '';
             if (subtreeSources.size > 0) {
               const parts: string[] = [];
@@ -508,7 +599,7 @@ export const generationOrchestrator = {
               throw new Error('Source content is empty after truncation');
             }
 
-            const l2Messages = buildL2Prompt(course.name, sourceContent, subtree);
+            const l2Messages = buildL2Prompt(course.name, sourceContent, prunedSubtree);
 
             l2Response = await streamCollect(
               provider,
@@ -524,8 +615,11 @@ export const generationOrchestrator = {
               ? (parsed.chunks as Array<{ node_id: string; content: string; word_count?: number; source_start?: string; source_end?: string }>)
               : [];
 
-            // Save each chunk to DB
+            // Save each chunk to DB. Ignore ids that are already preserved
+            // (defensive: the prompt only asked about missing ones, but
+            // LLMs sometimes echo more) — upsert is still safe either way.
             for (const c of chunks) {
+              if (preservedIds.has(c.node_id)) continue;
               const leafNode = findNodeById(subtree, c.node_id);
               const importance = leafNode?.importance || 'Important';
 
@@ -589,10 +683,18 @@ export const generationOrchestrator = {
           missingBySubtree.get(key)!.nodeIds.push(m.nodeId);
         }
 
+        // Build a preserved-id set that reflects the current DB state so
+        // reconciliation only asks the LLM about the leaves still missing.
+        const preservedForRecon = new Set<string>(existingIds);
         for (const { subtree, nodeIds } of missingBySubtree.values()) {
           throwIfCancelled(signal);
           try {
-            const retrySources = collectSourceFiles(subtree);
+            // Prune the subtree to just the missing leaves — saves prompt
+            // tokens and avoids the LLM "helpfully" rewriting already-done
+            // content (which we'd then discard).
+            const prunedSubtree = pruneSubtreeToMissingLeaves(subtree, preservedForRecon);
+            if (!prunedSubtree) continue;
+            const retrySources = collectSourceFiles(prunedSubtree);
             let retrySourceRaw = '';
             if (retrySources.size > 0) {
               const parts: string[] = [];
@@ -605,7 +707,7 @@ export const generationOrchestrator = {
               retrySourceRaw = allContent;
             }
             const sourceContent = truncateForLLM(retrySourceRaw, MAX_L2_SOURCE_CHARS);
-            const l2Messages = buildL2Prompt(course.name, sourceContent, subtree);
+            const l2Messages = buildL2Prompt(course.name, sourceContent, prunedSubtree);
             const l2Retry = await streamCollect(
               provider,
               { messages: l2Messages, responseFormat: 'json', temperature: 0.1 },
