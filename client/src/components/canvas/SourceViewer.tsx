@@ -240,13 +240,6 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
           </button>
 
-          {/* Zoom controls */}
-          <div className="border-l border-gray-200 pl-2 ml-1 flex items-center gap-1">
-            <button onClick={() => setScale((s) => Math.max(0.5, s - 0.2))} className="p-1 rounded hover:bg-gray-100 text-xs text-gray-500">−</button>
-            <span className="text-xs text-gray-400 min-w-[36px] text-center">{Math.round(scale * 100)}%</span>
-            <button onClick={() => setScale((s) => Math.min(3, s + 0.2))} className="p-1 rounded hover:bg-gray-100 text-xs text-gray-500">+</button>
-          </div>
-
           {/* Jump to reference */}
           {targetPage && currentPage !== targetPage && (
             <button
@@ -266,21 +259,30 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
       </div>
 
       {/* PDF Content */}
-      <div ref={containerRef} className="flex-1 overflow-auto bg-gray-100 flex justify-center p-4">
+      <div ref={containerRef} className="relative flex-1 overflow-auto bg-gray-100 flex justify-center p-4">
         {pdfFile ? (
-          <Document
-            file={pdfFile}
-            onLoadSuccess={onDocumentLoadSuccess}
-            loading={<div className="p-12 text-center text-gray-400">Loading PDF...</div>}
-            error={<div className="p-12 text-center text-red-400">PDF Load failed</div>}
-          >
-            <Page
-              pageNumber={currentPage}
-              scale={scale}
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-            />
-          </Document>
+          <>
+            <Document
+              file={pdfFile}
+              onLoadSuccess={onDocumentLoadSuccess}
+              loading={<div className="p-12 text-center text-gray-400">Loading PDF...</div>}
+              error={<div className="p-12 text-center text-red-400">PDF Load failed</div>}
+            >
+              <Page
+                pageNumber={currentPage}
+                scale={scale}
+                renderTextLayer={true}
+                renderAnnotationLayer={true}
+              />
+            </Document>
+
+            {/* Zoom controls */}
+            <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1 rounded bg-white/90 px-2 py-1 shadow-sm border border-gray-200">
+              <button onClick={() => setScale((s) => Math.max(0.5, s - 0.2))} className="p-1 rounded hover:bg-gray-100 text-xs text-gray-500">−</button>
+              <span className="text-xs text-gray-500 min-w-[36px] text-center">{Math.round(scale * 100)}%</span>
+              <button onClick={() => setScale((s) => Math.min(3, s + 0.2))} className="p-1 rounded hover:bg-gray-100 text-xs text-gray-500">+</button>
+            </div>
+          </>
         ) : (
           <div className="p-12 text-center text-gray-400">Preparing...</div>
         )}
