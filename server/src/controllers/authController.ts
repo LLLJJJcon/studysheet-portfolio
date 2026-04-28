@@ -1,6 +1,25 @@
 import { Request, Response } from 'express';
 import { authService } from '../services/authService';
 import { AuthRequest } from '../middleware/auth';
+import { decrypt } from '../utils/encryption';
+
+function maskApiKey(encryptedKey: unknown): string | null {
+  if (typeof encryptedKey !== 'string' || !encryptedKey) return null;
+
+  try {
+    const decrypted = decrypt(encryptedKey);
+    if (!decrypted) return null;
+    if (decrypted.length <= 8) {
+      return `${decrypted.slice(0, 4)}${'*'.repeat(Math.max(0, decrypted.length - 4))}`;
+    }
+
+    const prefix = decrypted.slice(0, 4);
+    const suffix = decrypted.slice(-4);
+    return `${prefix}${'*'.repeat(decrypted.length - 8)}${suffix}`;
+  } catch {
+    return '********';
+  }
+}
 
 function sanitizeUser(user: Record<string, unknown>) {
   const obj = typeof user.toObject === 'function' ? user.toObject() : { ...user };
@@ -8,9 +27,9 @@ function sanitizeUser(user: Record<string, unknown>) {
   // Mask API keys for client display
   if (obj.apiKeys) {
     obj.apiKeys = {
-      openai: obj.apiKeys.openai ? '••••••••' : null,
-      anthropic: obj.apiKeys.anthropic ? '••••••••' : null,
-      gemini: obj.apiKeys.gemini ? '••••••••' : null,
+      openai: maskApiKey(obj.apiKeys.openai),
+      anthropic: maskApiKey(obj.apiKeys.anthropic),
+      gemini: maskApiKey(obj.apiKeys.gemini),
     };
   }
   return obj;

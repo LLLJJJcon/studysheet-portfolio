@@ -101,6 +101,9 @@ export function SettingsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 OpenAI API Key {user?.apiKeys.openai && <span className="text-green-600">(Configured)</span>}
               </label>
+              {user?.apiKeys.openai && (
+                <p className="text-xs text-gray-500 mb-1">Current: {user.apiKeys.openai}</p>
+              )}
               <input
                 type="password"
                 value={openaiKey}
@@ -129,6 +132,9 @@ export function SettingsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Anthropic API Key {user?.apiKeys.anthropic && <span className="text-green-600">(Configured)</span>}
               </label>
+              {user?.apiKeys.anthropic && (
+                <p className="text-xs text-gray-500 mb-1">Current: {user.apiKeys.anthropic}</p>
+              )}
               <input
                 type="password"
                 value={anthropicKey}
@@ -141,6 +147,9 @@ export function SettingsPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Google Gemini API Key {user?.apiKeys.gemini && <span className="text-green-600">(Configured)</span>}
               </label>
+              {user?.apiKeys.gemini && (
+                <p className="text-xs text-gray-500 mb-1">Current: {user.apiKeys.gemini}</p>
+              )}
               <input
                 type="password"
                 value={geminiKey}
