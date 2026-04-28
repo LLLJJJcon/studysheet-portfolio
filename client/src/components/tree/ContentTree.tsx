@@ -40,6 +40,7 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
   const containers = useCanvasStore((s) => s.containers);
   const setSelectedChunkId = useCanvasStore((s) => s.setSelectedChunkId);
   const setSelectedContainerId = useCanvasStore((s) => s.setSelectedContainerId);
+  const [scale, setScale] = useState(1);
 
   const tree = propTree ?? storeTree;
   const selectedNodeId = propSelectedId ?? storeSelectedId;
@@ -143,6 +144,14 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
   const layout = tree ? computeTreeLayout(tree, expandedNodeIds, getExpandedText) : null;
   const positionById = layout ? new Map(layout.nodes.map((n) => [n.node.nodeId, n])) : new Map<string, PositionedNode>();
 
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      setScale((current) => Math.min(3, Math.max(0.1, current * delta)));
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="p-4 text-sm text-gray-400 animate-pulse">
@@ -160,137 +169,156 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
   }
 
   return (
-    <div className="py-2 relative">
+    <div className="relative h-full min-h-0">
       <div
-        className="relative"
-        style={{
-          width: layout ? Math.max(layout.width, 360) : 360,
-          height: layout ? Math.max(layout.height, 180) : 180,
-          minWidth: '100%',
-        }}
+        className="h-full overflow-auto py-2"
+        onWheel={handleWheel}
       >
-        {layout && (
-          <svg
-            className="absolute inset-0"
-            width={layout.width}
-            height={layout.height}
-            viewBox={`0 0 ${layout.width} ${layout.height}`}
-          >
-            {layout.edges.map((edge) => {
-              const from = positionById.get(edge.from);
-              const to = positionById.get(edge.to);
-              if (!from || !to) return null;
-
-              const startX = from.x + from.width / 2;
-              const startY = from.y;
-              const endX = to.x - to.width / 2;
-              const endY = to.y;
-              const midX = (startX + endX) / 2;
-
-              return (
-                <path
-                  key={`${edge.from}-${edge.to}`}
-                  d={`M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`}
-                  fill="none"
-                  stroke="#CBD5E1"
-                  strokeWidth="1.5"
-                />
-              );
-            })}
-          </svg>
-        )}
-
-        {layout?.nodes.map(({ node, depth, x, y, width, height }) => {
-          const isSelected = selectedNodeId === node.nodeId;
-          const isHighlighted = highlightedNodeId === node.nodeId;
-          const isDragOver = dragOverNodeId === node.nodeId;
-          const isExpanded = expandedNodeIds.has(node.nodeId);
-          const displayText = isExpanded ? getExpandedText(node) : node.name;
-
-          return (
+        <div
+          className="relative"
+          style={{
+            width: layout ? Math.max(layout.width * scale, 360) : 360,
+            height: layout ? Math.max(layout.height * scale, 180) : 180,
+            minWidth: '100%',
+            minHeight: '100%',
+          }}
+        >
+          {layout && (
             <div
-              key={node.nodeId}
-              className={`group absolute rounded-md border shadow-sm bg-white px-2 py-1.5 cursor-pointer transition-colors ${
-                isSelected ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-200'
-              } ${isHighlighted ? 'bg-yellow-50 border-yellow-300' : ''} ${
-                isDragOver ? 'bg-green-50 border-green-400' : ''
-              }`}
+              className="absolute top-0 left-0 origin-top-left"
               style={{
-                width,
-                minHeight: height,
-                left: x - width / 2,
-                top: y - height / 2,
-              }}
-              onClick={() => handleSelectNode(node)}
-              draggable={depth > 0}
-              onDragStart={(e) => {
-                e.stopPropagation();
-                handleDragStart(node.nodeId);
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleDragOver(node.nodeId);
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleDragEnd();
+                width: layout.width,
+                height: layout.height,
+                transform: `scale(${scale})`,
               }}
             >
-              <div className="flex items-center justify-between gap-1 mb-1">
-                <div className="flex items-center gap-1 min-h-[16px]">
-                  {node.importance && <ImportancePill importance={node.importance} />}
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    className="text-[10px] px-1 py-0.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-100"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleExpanded(node.nodeId);
-                    }}
-                    title={isExpanded ? 'Collapse node' : 'Expand node'}
-                  >
-                    {isExpanded ? '−' : '+'}
-                  </button>
-                  {node.children.length === 0 && node.importance && (
-                    <button
-                      type="button"
-                      className="text-[10px] px-1 py-0.5 rounded border border-purple-200 text-purple-700 hover:bg-purple-50"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAiChat(node);
-                      }}
-                      title="AI Chat"
-                    >
-                      AI
-                    </button>
-                  )}
-                  <TreeNodeActions nodeId={node.nodeId} depth={depth} />
-                </div>
-              </div>
-
-              <div
-                className={`text-xs font-medium text-gray-800 w-full ${
-                  isExpanded ? 'whitespace-pre-wrap break-words leading-5' : 'overflow-hidden leading-4'
-                }`}
-                title={displayText}
-                style={
-                  isExpanded
-                    ? undefined
-                    : {
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                      }
-                }
+              <svg
+                className="absolute inset-0"
+                width={layout.width}
+                height={layout.height}
+                viewBox={`0 0 ${layout.width} ${layout.height}`}
               >
-                {displayText}
-              </div>
+                {layout.edges.map((edge) => {
+                  const from = positionById.get(edge.from);
+                  const to = positionById.get(edge.to);
+                  if (!from || !to) return null;
+
+                  const startX = from.x + from.width / 2;
+                  const startY = from.y;
+                  const endX = to.x - to.width / 2;
+                  const endY = to.y;
+                  const midX = (startX + endX) / 2;
+
+                  return (
+                    <path
+                      key={`${edge.from}-${edge.to}`}
+                      d={`M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`}
+                      fill="none"
+                      stroke="#CBD5E1"
+                      strokeWidth="1.5"
+                    />
+                  );
+                })}
+              </svg>
+
+              {layout.nodes.map(({ node, depth, x, y, width, height }) => {
+                const isSelected = selectedNodeId === node.nodeId;
+                const isHighlighted = highlightedNodeId === node.nodeId;
+                const isDragOver = dragOverNodeId === node.nodeId;
+                const isExpanded = expandedNodeIds.has(node.nodeId);
+                const displayText = isExpanded ? getExpandedText(node) : node.name;
+
+                return (
+                  <div
+                    key={node.nodeId}
+                    className={`group absolute rounded-md border shadow-sm bg-white px-2 py-1.5 cursor-pointer transition-colors ${
+                      isSelected ? 'border-blue-400 ring-2 ring-blue-200' : 'border-gray-200'
+                    } ${isHighlighted ? 'bg-yellow-50 border-yellow-300' : ''} ${
+                      isDragOver ? 'bg-green-50 border-green-400' : ''
+                    }`}
+                    style={{
+                      width,
+                      minHeight: height,
+                      left: x - width / 2,
+                      top: y - height / 2,
+                    }}
+                    onClick={() => handleSelectNode(node)}
+                    draggable={depth > 0}
+                    onDragStart={(e) => {
+                      e.stopPropagation();
+                      handleDragStart(node.nodeId);
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDragOver(node.nodeId);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDragEnd();
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <div className="flex items-center gap-1 min-h-[16px]">
+                        {node.importance && <ImportancePill importance={node.importance} />}
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          className="text-[10px] px-1 py-0.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-100"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpanded(node.nodeId);
+                          }}
+                          title={isExpanded ? 'Collapse node' : 'Expand node'}
+                        >
+                          {isExpanded ? '−' : '+'}
+                        </button>
+                        {node.children.length === 0 && node.importance && (
+                          <button
+                            type="button"
+                            className="text-[10px] px-1 py-0.5 rounded border border-purple-200 text-purple-700 hover:bg-purple-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAiChat(node);
+                            }}
+                            title="AI Chat"
+                          >
+                            AI
+                          </button>
+                        )}
+                        <TreeNodeActions nodeId={node.nodeId} depth={depth} />
+                      </div>
+                    </div>
+
+                    <div
+                      className={`text-xs font-medium text-gray-800 w-full ${
+                        isExpanded ? 'whitespace-pre-wrap break-words leading-5' : 'overflow-hidden leading-4'
+                      }`}
+                      title={displayText}
+                      style={
+                        isExpanded
+                          ? undefined
+                          : {
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                            }
+                      }
+                    >
+                      {displayText}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
+          )}
+        </div>
+      </div>
+
+      <div className="absolute bottom-3 right-3 z-10 bg-white/80 px-2 py-1 rounded text-xs text-gray-500 pointer-events-none">
+        {Math.round(scale * 100)}%
       </div>
 
     </div>
