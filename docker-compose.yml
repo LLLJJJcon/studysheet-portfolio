@@ -2,7 +2,9 @@ name: studysheet
 
 services:
   client:
-    build: ./client
+    build:
+      context: ./client
+      target: dev
     ports:
       - "5173:5173"
     depends_on:
@@ -24,7 +26,9 @@ services:
           path: ./client/package.json
 
   server:
-    build: ./server
+    build:
+      context: ./server
+      target: dev
     ports:
       - "3001:3001"
     depends_on:

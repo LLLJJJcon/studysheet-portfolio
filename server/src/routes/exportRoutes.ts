@@ -4,6 +4,7 @@ import { authMiddleware } from '../middleware/auth';
 import { exportService } from '../services/exportService';
 import { Course } from '../models/Course';
 
+// Router for exporting course study sheets as HTML or PDF
 const router = Router();
 
 router.use(authMiddleware);
@@ -45,7 +46,7 @@ router.get('/:id/export/pdf', async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const pdfBuffer = await exportService.generatePDF(courseId);
+    const pdfBuffer = await exportService.generatePDF(courseId as string);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',

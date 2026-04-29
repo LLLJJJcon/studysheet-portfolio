@@ -17,8 +17,10 @@ interface PageConfig {
   fontSize?: number;
 }
 
+// Default page margins in millimeters
 const MARGINS = { top: 5, right: 5, bottom: 5, left: 5 };
 
+// Find the parent node's name for a given nodeId by searching the tree
 function findParentName(tree: ITreeNode, nodeId: string, parentName = ''): string {
   if (tree.nodeId === nodeId) return parentName;
   for (const child of tree.children || []) {
@@ -28,6 +30,7 @@ function findParentName(tree: ITreeNode, nodeId: string, parentName = ''): strin
   return '';
 }
 
+// Look up a node's display name by its ID in the content tree
 function findNodeName(tree: ITreeNode, nodeId: string): string {
   if (tree.nodeId === nodeId) return tree.name;
   for (const child of tree.children || []) {
@@ -37,6 +40,7 @@ function findNodeName(tree: ITreeNode, nodeId: string): string {
   return nodeId;
 }
 
+// Collect node names and importance levels from the tree into lookup maps
 function collectNodeInfo(
   node: ITreeNode,
   names: Record<string, string>,
@@ -51,7 +55,9 @@ function collectNodeInfo(
   }
 }
 
+// Service for generating, retrieving, updating, and optimizing page layouts
 export const layoutService = {
+  // Compute an algorithmic layout for chunks on pages and persist it to DB
   async generateLayout(
     courseId: string,
     chunks: IChunk[],
@@ -85,10 +91,12 @@ export const layoutService = {
     return layout;
   },
 
+  // Retrieve the saved layout for a course from the database
   async getLayout(courseId: string): Promise<ILayout | null> {
     return Layout.findOne({ courseId });
   },
 
+  // Update the containers of an existing layout in the database
   async updateLayout(
     courseId: string,
     containers: IContainer[]
@@ -100,6 +108,7 @@ export const layoutService = {
     );
   },
 
+  // Use the LLM to optimize chunk positions within the existing layout
   async optimizeLayout(
     courseId: string,
     tree: ITreeNode,
@@ -148,7 +157,7 @@ export const layoutService = {
 
     // Apply optimized positions to layout
     const updatedContainers = layout.containers.map((container) => ({
-      ...container.toObject ? container.toObject() : container,
+      ...(container as any).toObject ? (container as any).toObject() : container,
       chunks: (container.chunks || []).map((chunk) => {
         const opt = optimizedChunks.find((o) => o.nodeId === chunk.nodeId);
         if (opt) {
