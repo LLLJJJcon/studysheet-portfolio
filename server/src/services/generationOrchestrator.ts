@@ -33,6 +33,7 @@ const MAX_CHILDREN_PER_NODE = 40;
  * Collect the full text from a streaming LLM call with retry on transient errors.
  * Retries up to `retries` times on rate-limit (429), premature close, etc.
  */
+// Collect full text from a streaming LLM call with retry on transient errors
 export async function streamCollect(
   provider: LLMProvider,
   params: { messages: any[]; responseFormat?: string; temperature?: number },
@@ -72,6 +73,7 @@ export async function streamCollect(
  * <analysis>…</analysis>. Also drops an unclosed leading <think> block (streaming
  * that never emitted the closing tag) by cutting at the next JSON/code-fence start.
  */
+// Remove reasoning-model preambles like <think>...</think> from LLM output
 function stripReasoningBlocks(text: string): string {
   let cleaned = text.replace(/<(think|reasoning|analysis|reflection|scratchpad)>[\s\S]*?<\/\1>/gi, '');
 
@@ -95,6 +97,7 @@ function stripReasoningBlocks(text: string): string {
  * Extract JSON from LLM output that may contain markdown code blocks,
  * leading/trailing text, reasoning-model preambles, or other non-JSON content.
  */
+// Extract valid JSON from LLM output containing code blocks, preambles, or mixed text
 export function extractJSON(raw: string): unknown {
   const trimmed = stripReasoningBlocks(raw);
   try {
@@ -143,17 +146,20 @@ export function extractJSON(raw: string): unknown {
   throw new Error('No valid JSON found in response');
 }
 
+// Recursively collect nodeId-to-name mappings from a tree
 function collectNodeNames(node: ITreeNode, map: Map<string, string>): void {
   map.set(node.nodeId, node.name);
   for (const ch of node.children || []) collectNodeNames(ch, map);
 }
 
+// Truncate text to a maximum character count, appending a notice if truncated
 export function truncateForLLM(text: string, maxChars: number): string {
   const normalized = (text || '').trim();
   if (normalized.length <= maxChars) return normalized;
   return `${normalized.slice(0, maxChars)}\n\n[Content truncated due to length]`;
 }
 
+// Sanitize a raw LLM tree node, enforcing depth and children limits
 export function toSafeNode(node: unknown, depth = 0): Record<string, unknown> {
   const asObj = (node && typeof node === 'object') ? (node as Record<string, unknown>) : {};
   const name = typeof asObj.name === 'string' && asObj.name.trim()
@@ -185,6 +191,7 @@ export function toSafeNode(node: unknown, depth = 0): Record<string, unknown> {
   return result;
 }
 
+// Build a minimal fallback tree with one child per file when LLM parsing fails
 function buildFallbackTree(courseName: string, files: Array<{ filename: string }>): Record<string, unknown> {
   return {
     name: courseName,
@@ -197,6 +204,7 @@ function buildFallbackTree(courseName: string, files: Array<{ filename: string }
   };
 }
 
+// Assign UUID-based nodeIds to every node in a tree recursively
 export function assignNodeIds(node: Record<string, unknown>): ITreeNode {
   const result: ITreeNode = {
     nodeId: uuidv4(),
@@ -229,6 +237,7 @@ export function assignNodeIds(node: Record<string, unknown>): ITreeNode {
  * skip the subtree entirely in that case (no LLM call at all, saving the
  * most valuable daily quota slot).
  */
+// Remove already-generated leaves from a tree clone, keeping only missing ones for LLM retry
 function pruneSubtreeToMissingLeaves(
   node: ITreeNode,
   preservedIds: Set<string>
@@ -247,6 +256,7 @@ function pruneSubtreeToMissingLeaves(
   return { ...node, children: newChildren };
 }
 
+// Find a node in the tree by its ID using depth-first search
 function findNodeById(node: ITreeNode, nodeId: string): ITreeNode | null {
   if (node.nodeId === nodeId) return node;
   for (const child of node.children || []) {
@@ -256,6 +266,7 @@ function findNodeById(node: ITreeNode, nodeId: string): ITreeNode | null {
   return null;
 }
 
+// Collect all sourceFile references from a subtree's nodes
 export function collectSourceFiles(node: ITreeNode): Set<string> {
   const sources = new Set<string>();
   if (node.sourceFile) sources.add(node.sourceFile);
@@ -265,6 +276,7 @@ export function collectSourceFiles(node: ITreeNode): Set<string> {
   return sources;
 }
 
+// Propagate a sourceFile value down to all leaf nodes that lack one
 function propagateSourceFile(node: ITreeNode, sourceFile: string): void {
   if (!node.children || node.children.length === 0) {
     if (!node.sourceFile) node.sourceFile = sourceFile;
@@ -273,6 +285,7 @@ function propagateSourceFile(node: ITreeNode, sourceFile: string): void {
   for (const child of node.children) propagateSourceFile(child, sourceFile);
 }
 
+// Flatten file-name wrapper nodes by promoting their children to the parent level
 export function stripFileNameNodes(tree: ITreeNode, filenames: string[]): ITreeNode {
   const nameSet = new Set(filenames.map(f => f.toLowerCase().trim()));
   const noExtSet = new Set(filenames.map(f => {
@@ -303,6 +316,7 @@ export function stripFileNameNodes(tree: ITreeNode, filenames: string[]): ITreeN
   return { ...tree, children: newChildren };
 }
 
+// Map LLM provider errors to user-friendly messages with retry guidance
 export function mapLLMErrorToUserMessage(error: unknown): { message: string; retryable: boolean } {
   const raw = error instanceof Error ? error.message : String(error);
   const lower = raw.toLowerCase();
@@ -340,7 +354,9 @@ export function mapLLMErrorToUserMessage(error: unknown): { message: string; ret
   };
 }
 
+// Orchestrator that runs the full L1-L4 generation pipeline via SSE
 export const generationOrchestrator = {
+  // Run the full generation pipeline: tree (L1), chunks (L2), compression (L3), layout (L4)
   async startGeneration(courseId: string, userId: string, res: Response): Promise<void> {
     initSSE(res);
 

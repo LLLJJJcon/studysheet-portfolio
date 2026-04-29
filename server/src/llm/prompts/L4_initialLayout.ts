@@ -16,6 +16,7 @@ interface PageInfo {
   margins: { top: number; right: number; bottom: number; left: number };
 }
 
+// Build the L4 prompt messages for generating initial page layout positions for chunks
 export function buildL4Prompt(
   courseName: string,
   chunks: ChunkInfo[],

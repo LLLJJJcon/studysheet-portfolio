@@ -14,6 +14,7 @@ export interface IUser extends Document {
   createdAt: Date;
 }
 
+// Mongoose schema for user accounts with credentials and LLM provider settings
 const userSchema = new Schema<IUser>({
   email: {
     type: String,
@@ -44,4 +45,5 @@ const userSchema = new Schema<IUser>({
   },
 });
 
+// Mongoose model for application users
 export const User = mongoose.model<IUser>('User', userSchema);

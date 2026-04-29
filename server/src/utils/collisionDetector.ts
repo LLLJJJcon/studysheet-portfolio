@@ -20,6 +20,7 @@ interface PageBounds {
 /**
  * Check if two rectangles overlap.
  */
+// Check whether two rectangles overlap, with an optional gap margin
 export function rectsOverlap(a: Rect, b: Rect, gap: number = 0): boolean {
   return !(
     a.x + a.width + gap <= b.x ||
@@ -32,6 +33,7 @@ export function rectsOverlap(a: Rect, b: Rect, gap: number = 0): boolean {
 /**
  * Check if a rectangle is within page boundaries.
  */
+// Check whether a rectangle fits entirely within the given page boundaries
 export function isWithinBounds(rect: Rect, bounds: PageBounds): boolean {
   return (
     rect.x >= bounds.left &&
@@ -45,6 +47,7 @@ export function isWithinBounds(rect: Rect, bounds: PageBounds): boolean {
  * Find all collisions for a given rect against a list of other rects.
  * Returns indices of colliding rects.
  */
+// Find indices of all rectangles in the list that overlap with the given rect
 export function findCollisions(
   rect: Rect,
   others: Rect[],
@@ -65,6 +68,7 @@ export function findCollisions(
  * Snap a rect to avoid collisions by shifting it.
  * Returns a new position that avoids overlaps.
  */
+// Compute the smallest displacement to move a rectangle away from a static obstacle
 export function resolveCollision(
   movingRect: Rect,
   staticRect: Rect,

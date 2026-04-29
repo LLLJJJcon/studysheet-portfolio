@@ -1,6 +1,7 @@
 import { ChatMessage } from '../LLMProvider';
 import { ITreeNode } from '../../models/ContentTree';
 
+// Serialize a tree to indented text with node IDs and importance labels
 function serializeTreeStructure(node: ITreeNode, depth = 0): string {
   const indent = '  '.repeat(depth);
   let line = `${indent}- ${node.name} (id: ${node.nodeId})`;
@@ -12,6 +13,7 @@ function serializeTreeStructure(node: ITreeNode, depth = 0): string {
   return line;
 }
 
+// Build a prompt for generating a merge plan between existing and new content trees
 export function buildMergeTreeDiffPrompt(
   courseName: string,
   existingTree: ITreeNode,

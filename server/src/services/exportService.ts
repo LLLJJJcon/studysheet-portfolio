@@ -11,7 +11,9 @@ interface ExportOptions {
 /**
  * Generate an HTML export of the cheatsheet with CSS print styles.
  */
+// Service for exporting study sheets as HTML with print styles or as PDF via Puppeteer
 export const exportService = {
+  // Build a complete HTML document with positioned chunks and print CSS
   async generateHTML(courseId: string): Promise<string> {
     const [course, layout, chunks, contentTree] = await Promise.all([
       Course.findById(courseId),
@@ -45,6 +47,7 @@ export const exportService = {
 </html>`;
   },
 
+  // Render the HTML export to a PDF buffer using headless Puppeteer
   async generatePDF(courseId: string): Promise<Buffer> {
     const html = await this.generateHTML(courseId);
 
@@ -84,6 +87,7 @@ export const exportService = {
   },
 };
 
+// Generate HTML for all pages with absolutely positioned chunk elements
 function generatePagesHTML(
   layout: ILayout,
   chunkMap: Map<string, { content: string; importance: string }>,
@@ -126,6 +130,7 @@ function generatePagesHTML(
   return pages.join('\n');
 }
 
+// Generate CSS for screen preview and print layout with page dimensions
 function getPrintCSS(
   pageConfig: { width: number; height: number },
   fontSize: number,
@@ -212,6 +217,7 @@ function getPrintCSS(
   `;
 }
 
+// Map importance level to a CSS class name for styling
 function getImportanceClass(importance: string): string {
   switch (importance) {
     case 'High-Frequency':
@@ -225,6 +231,7 @@ function getImportanceClass(importance: string): string {
   }
 }
 
+// Escape special HTML characters to prevent injection
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')

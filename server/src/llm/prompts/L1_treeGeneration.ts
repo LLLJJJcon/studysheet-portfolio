@@ -1,5 +1,6 @@
 import { ChatMessage } from '../LLMProvider';
 
+// Build the L1 prompt messages for generating a hierarchical exam-point content tree
 export function buildL1Prompt(
   courseName: string,
   files: { filename: string; content: string }[]

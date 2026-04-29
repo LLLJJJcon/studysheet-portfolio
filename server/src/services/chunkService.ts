@@ -1,7 +1,9 @@
 import { Chunk } from '../models/Chunk';
 import { ContentTree, ITreeNode } from '../models/ContentTree';
 
+// Service for CRUD operations on content chunks and tree path lookups
 export const chunkService = {
+  // Create or update a chunk by courseId and nodeId
   async upsertChunk(
     courseId: string,
     nodeId: string,
@@ -23,18 +25,22 @@ export const chunkService = {
     );
   },
 
+  // Retrieve all chunks belonging to a course
   async getChunksByCourse(courseId: string) {
     return Chunk.find({ courseId });
   },
 
+  // Retrieve chunks filtered by importance level
   async getChunksByImportance(courseId: string, importance: string) {
     return Chunk.find({ courseId, importance });
   },
 
+  // Delete all chunks for a given course
   async deleteChunksByCourse(courseId: string) {
     return Chunk.deleteMany({ courseId });
   },
 
+  // Aggregate the total word count across all chunks for a course
   async getTotalWordCount(courseId: string): Promise<number> {
     const result = await Chunk.aggregate([
       { $match: { courseId } },
@@ -43,10 +49,12 @@ export const chunkService = {
     return result[0]?.total || 0;
   },
 
+  // Fetch specific chunks by their nodeIds within a course
   async getChunksByNodeIds(courseId: string, nodeIds: string[]) {
     return Chunk.find({ courseId, nodeId: { $in: nodeIds } });
   },
 
+  // Build the breadcrumb path from root to a node in the content tree
   async getTreePathForNode(courseId: string, nodeId: string): Promise<string> {
     const contentTree = await ContentTree.findOne({ courseId });
     if (!contentTree) return '';
@@ -65,6 +73,7 @@ export const chunkService = {
     return dfs(contentTree.tree, []) || '';
   },
 
+  // Look up the display name of a node by its ID in the content tree
   async getNodeName(courseId: string, nodeId: string): Promise<string> {
     const contentTree = await ContentTree.findOne({ courseId });
     if (!contentTree) return '';

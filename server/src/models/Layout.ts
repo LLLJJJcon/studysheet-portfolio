@@ -29,6 +29,7 @@ export interface ILayout extends Document {
   updatedAt: Date;
 }
 
+// Mongoose schema for a chunk's position and dimensions within a container
 const chunkPositionSchema = new Schema<IChunkPosition>({
   nodeId: { type: String, required: true },
   x: { type: Number, required: true },
@@ -37,6 +38,7 @@ const chunkPositionSchema = new Schema<IChunkPosition>({
   height: { type: Number, required: true },
 }, { _id: false });
 
+// Mongoose schema for a layout container grouping chunks on a page
 const containerSchema = new Schema<IContainer>({
   id: { type: String, required: true },
   parentNodeId: { type: String, required: true },
@@ -49,6 +51,7 @@ const containerSchema = new Schema<IContainer>({
   chunks: [chunkPositionSchema],
 }, { _id: false });
 
+// Mongoose schema for the full page layout of a course study sheet
 const layoutSchema = new Schema<ILayout>(
   {
     courseId: {
@@ -66,4 +69,5 @@ const layoutSchema = new Schema<ILayout>(
   }
 );
 
+// Mongoose model for study sheet spatial layouts
 export const Layout = mongoose.model<ILayout>('Layout', layoutSchema);

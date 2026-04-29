@@ -7,16 +7,19 @@ const AUTH_TAG_LENGTH = 16;
 
 let hasWarnedAboutEncryptionKey = false;
 
+// Log a one-time warning when falling back to a derived encryption key
 function warnFallback(reason: string): void {
   if (hasWarnedAboutEncryptionKey) return;
   hasWarnedAboutEncryptionKey = true;
   console.warn(`[encryption] ${reason}. Falling back to a derived key.`);
 }
 
+// Derive a 256-bit key from an arbitrary string via SHA-256
 function deriveKey(source: string): Buffer {
   return crypto.createHash('sha256').update(source).digest();
 }
 
+// Resolve the AES-256 encryption key from the environment or fall back to a derived key
 function getKey(): Buffer {
   const rawKey = (config.encryptionKey || '').trim();
 
@@ -39,6 +42,7 @@ function getKey(): Buffer {
   return deriveKey(rawKey);
 }
 
+// Encrypt a plaintext string using AES-256-GCM, returning iv:authTag:ciphertext
 export function encrypt(text: string): string {
   const key = getKey();
   const iv = crypto.randomBytes(IV_LENGTH);
@@ -52,6 +56,7 @@ export function encrypt(text: string): string {
   return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
 }
 
+// Decrypt an AES-256-GCM encrypted string from iv:authTag:ciphertext format
 export function decrypt(encryptedText: string): string {
   const key = getKey();
   const parts = encryptedText.split(':');

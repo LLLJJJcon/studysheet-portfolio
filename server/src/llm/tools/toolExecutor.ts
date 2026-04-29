@@ -7,6 +7,7 @@ import { ToolCall } from '../LLMProvider';
  * Execute agent tool calls against the database.
  * Returns the tool result as a string to feed back to the LLM.
  */
+// Dispatch and execute an agent tool call against the database, returning the result string
 export async function executeToolCall(
   toolCall: ToolCall,
   courseId: string
@@ -25,6 +26,7 @@ export async function executeToolCall(
   }
 }
 
+// Fetch a node's chunk content and metadata by nodeId
 async function getNodeContent(courseId: string, nodeId: string): Promise<string> {
   const chunk = await Chunk.findOne({ courseId, nodeId });
   const contentTree = await ContentTree.findOne({ courseId });
@@ -48,6 +50,7 @@ async function getNodeContent(courseId: string, nodeId: string): Promise<string>
   });
 }
 
+// Retrieve a subtree structure starting from a given nodeId up to maxDepth
 async function getSubtree(
   courseId: string,
   nodeId: string,
@@ -73,6 +76,7 @@ async function getSubtree(
   return JSON.stringify(serialized);
 }
 
+// Search for nodes by name or content matching a query string
 async function searchNodes(
   courseId: string,
   query: string,
@@ -137,6 +141,7 @@ async function searchNodes(
 
 // --- Helpers ---
 
+// Find a tree node by ID using depth-first search
 function findNode(node: ITreeNode, nodeId: string): ITreeNode | null {
   if (node.nodeId === nodeId) return node;
   for (const child of node.children || []) {
@@ -146,6 +151,7 @@ function findNode(node: ITreeNode, nodeId: string): ITreeNode | null {
   return null;
 }
 
+// Serialize a tree node to a plain object with depth-limited children
 function serializeTree(
   node: ITreeNode,
   maxDepth: number,
@@ -168,6 +174,7 @@ function serializeTree(
   return result;
 }
 
+// Flatten a tree into a flat array of all nodes
 function flattenTree(node: ITreeNode): ITreeNode[] {
   const result: ITreeNode[] = [node];
   for (const child of node.children || []) {

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { config } from './index';
 
+// Connect to MongoDB and register connection event listeners
 export const connectDatabase = async (): Promise<void> => {
   try {
     await mongoose.connect(config.mongodbUri);

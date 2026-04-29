@@ -3,6 +3,7 @@ import { courseController } from '../controllers/courseController';
 import { authMiddleware } from '../middleware/auth';
 import { upload } from '../middleware/upload';
 
+// Router for course CRUD operations and file management
 const router = Router();
 
 router.use(authMiddleware);

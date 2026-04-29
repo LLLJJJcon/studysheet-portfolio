@@ -1,6 +1,7 @@
 import { ChatMessage } from '../LLMProvider';
 import { ITreeNode } from '../../models/ContentTree';
 
+// Find a tree node by ID using depth-first search
 function findNode(node: ITreeNode, id: string): ITreeNode | null {
   if (node.nodeId === id) return node;
   for (const child of node.children || []) {
@@ -10,6 +11,7 @@ function findNode(node: ITreeNode, id: string): ITreeNode | null {
   return null;
 }
 
+// Find the path of node names from root to a given nodeId
 function findPath(node: ITreeNode, id: string, trail: string[] = []): string[] | null {
   const nextTrail = [...trail, node.name];
   if (node.nodeId === id) return nextTrail;
@@ -20,6 +22,7 @@ function findPath(node: ITreeNode, id: string, trail: string[] = []): string[] |
   return null;
 }
 
+// Serialize a tree node to indented text with IDs and importance annotations
 function serializeTree(node: ITreeNode, depth = 0): string {
   const indent = '  '.repeat(depth);
   let line = `${indent}- ${node.name} (id: ${node.nodeId})`;
@@ -37,6 +40,7 @@ function serializeTree(node: ITreeNode, depth = 0): string {
  * feed back the exact missing leaves (with their path in the new tree) and
  * ask the model to produce operations ONLY for those leaves.
  */
+// Build a targeted repair prompt for covering leaves missed by the initial merge diff
 export function buildMergeTreeDiffRepairPrompt(
   courseName: string,
   existingTree: ITreeNode,

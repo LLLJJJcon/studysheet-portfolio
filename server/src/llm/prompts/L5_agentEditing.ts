@@ -5,6 +5,7 @@ import { ChatMessage } from '../LLMProvider';
  * The agent can use tools to inspect the content tree and propose changes.
  * Backend handles the tool-use loop internally; only final changes[] are streamed to the client.
  */
+// Build the L5 system prompt for the agent editing loop with tool-use instructions
 export function buildL5SystemPrompt(courseName: string): ChatMessage {
   return {
     role: 'system',
@@ -65,6 +66,7 @@ After you have gathered enough context, output exactly ONE JSON block:
   };
 }
 
+// Wrap the user's editing instruction into a chat message
 export function buildL5UserMessage(userInstruction: string): ChatMessage {
   return {
     role: 'user',

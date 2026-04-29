@@ -5,11 +5,13 @@ import { Chunk } from '../models/Chunk';
 
 const MAX_AUTO_SAVE_VERSIONS = 20;
 
+// Service for saving, restoring, and managing versioned snapshots of course content
 export const versionService = {
   /**
    * Create an auto-save snapshot of the current state.
    * Maintains a rolling window of MAX_AUTO_SAVE_VERSIONS.
    */
+  // Snapshot the current tree, layout, and chunks as a new version with auto-pruning
   async autoSave(courseId: string, label?: string, description?: string): Promise<IVersion> {
     const [tree, layout, chunks] = await Promise.all([
       ContentTree.findOne({ courseId }),
@@ -68,6 +70,7 @@ export const versionService = {
   /**
    * Mark a version as a baseline (protected from auto-pruning).
    */
+  // Mark a version as baseline so it is protected from auto-pruning
   async markBaseline(
     courseId: string,
     versionId: string,
@@ -83,6 +86,7 @@ export const versionService = {
   /**
    * Get all versions for a course, sorted by version number descending.
    */
+  // List all versions for a course sorted by version number descending
   async getVersions(courseId: string): Promise<IVersion[]> {
     return Version.find({ courseId })
       .sort({ versionNumber: -1 })
@@ -92,6 +96,7 @@ export const versionService = {
   /**
    * Get a specific version with full snapshots.
    */
+  // Retrieve a specific version with full snapshot data
   async getVersion(
     courseId: string,
     versionId: string
@@ -102,6 +107,7 @@ export const versionService = {
   /**
    * Restore a version: overwrite current tree, layout, and chunks.
    */
+  // Restore a version by overwriting the current tree, layout, and chunks
   async restoreVersion(courseId: string, versionId: string): Promise<void> {
     const version = await Version.findOne({ _id: versionId, courseId });
     if (!version) {
@@ -155,6 +161,7 @@ export const versionService = {
   /**
    * Delete a version (only non-baseline versions).
    */
+  // Delete a non-baseline version by ID
   async deleteVersion(
     courseId: string,
     versionId: string

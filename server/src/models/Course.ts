@@ -30,6 +30,7 @@ export interface ICourse extends Document {
   updatedAt: Date;
 }
 
+// Mongoose schema for uploaded file metadata including extracted text
 const fileInfoSchema = new Schema<IFileInfo>({
   fileId: { type: String, required: true },
   filename: { type: String, required: true },
@@ -39,6 +40,7 @@ const fileInfoSchema = new Schema<IFileInfo>({
   uploadedAt: { type: Date, default: Date.now },
 });
 
+// Mongoose schema for page layout configuration (size, dimensions, columns)
 const pageConfigSchema = new Schema<IPageConfig>({
   size: { type: String, enum: ['A4', '16:9', 'custom'], default: 'A4' },
   width: { type: Number, required: true },
@@ -49,6 +51,7 @@ const pageConfigSchema = new Schema<IPageConfig>({
   fontSize: { type: Number, min: 4, max: 14 },
 });
 
+// Mongoose schema for a course with user ownership, files, and generation status
 const courseSchema = new Schema<ICourse>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -65,4 +68,5 @@ const courseSchema = new Schema<ICourse>(
   { timestamps: true }
 );
 
+// Mongoose model for courses containing uploaded files and page configuration
 export const Course = mongoose.model<ICourse>('Course', courseSchema);

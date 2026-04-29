@@ -6,6 +6,7 @@ import { ToolDefinition } from '../LLMProvider';
  * before proposing changes.
  */
 
+// Tool definitions for the L5 agent to inspect and search the content tree
 export const agentTools: ToolDefinition[] = [
   {
     name: 'get_node_content',

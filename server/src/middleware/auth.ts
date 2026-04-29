@@ -7,6 +7,7 @@ export interface AuthRequest extends Request {
   user?: AuthPayload;
 }
 
+// Verify JWT token from Authorization header and attach user payload to request
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

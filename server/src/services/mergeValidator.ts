@@ -22,11 +22,13 @@ export interface ValidationResult {
   coverageOnly: boolean;
 }
 
+// Recursively collect all nodeIds from a tree into a set
 function collectNodeIds(node: ITreeNode, ids: Set<string>): void {
   ids.add(node.nodeId);
   for (const child of node.children || []) collectNodeIds(child, ids);
 }
 
+// Recursively collect nodeIds of leaf nodes (no children) into a set
 function collectLeafIds(node: ITreeNode, ids: Set<string>): void {
   if (!node.children || node.children.length === 0) {
     ids.add(node.nodeId);
@@ -34,6 +36,7 @@ function collectLeafIds(node: ITreeNode, ids: Set<string>): void {
   for (const child of node.children || []) collectLeafIds(child, ids);
 }
 
+// Find a tree node by ID using depth-first search
 function findNode(node: ITreeNode, nodeId: string): ITreeNode | null {
   if (node.nodeId === nodeId) return node;
   for (const child of node.children || []) {
@@ -43,6 +46,7 @@ function findNode(node: ITreeNode, nodeId: string): ITreeNode | null {
   return null;
 }
 
+// Validate merge operations against existing and new trees, checking coverage and structure
 export function validateMergeOperations(
   raw: unknown,
   existingTree: ITreeNode,

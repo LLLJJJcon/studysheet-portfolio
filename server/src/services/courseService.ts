@@ -8,6 +8,7 @@ const WORD_LIMITS: Record<string, number> = {
   '16:9': 4200,
 };
 
+// Calculate the total word limit based on page size, dimensions, and page count
 function calculateWordLimit(config: { size: string; width: number; height: number; pages: number }): number {
   if (config.size === 'custom') {
     // Approximate based on area ratio to A4 (210x297mm)
@@ -20,7 +21,9 @@ function calculateWordLimit(config: { size: string; width: number; height: numbe
   return Math.floor(perPage * config.pages * 0.95);
 }
 
+// Service for course CRUD operations, file management, and status updates
 export const courseService = {
+  // Create a new course with calculated word limit from page configuration
   async create(userId: string, name: string, pageConfig: Omit<IPageConfig, 'wordLimit'>): Promise<ICourse> {
     const wordLimit = calculateWordLimit(pageConfig);
     return Course.create({
@@ -30,12 +33,14 @@ export const courseService = {
     });
   },
 
+  // List all courses for a user, sorted by most recently updated
   async list(userId: string): Promise<ICourse[]> {
     return Course.find({ userId: new mongoose.Types.ObjectId(userId) })
       .sort({ updatedAt: -1 })
       .select('-files.extractedText');
   },
 
+  // Find a specific course by ID and user ownership
   async getById(courseId: string, userId: string): Promise<ICourse | null> {
     return Course.findOne({
       _id: courseId,
@@ -43,6 +48,7 @@ export const courseService = {
     });
   },
 
+  // Update course fields for an authorized user
   async update(courseId: string, userId: string, updates: { name?: string }): Promise<ICourse | null> {
     return Course.findOneAndUpdate(
       { _id: courseId, userId: new mongoose.Types.ObjectId(userId) },
@@ -51,6 +57,7 @@ export const courseService = {
     );
   },
 
+  // Delete a course if owned by the given user
   async delete(courseId: string, userId: string): Promise<boolean> {
     const result = await Course.deleteOne({
       _id: courseId,
@@ -59,6 +66,7 @@ export const courseService = {
     return result.deletedCount > 0;
   },
 
+  // Append an uploaded file record to a course's files array
   async addFile(
     courseId: string,
     userId: string,
@@ -71,6 +79,7 @@ export const courseService = {
     );
   },
 
+  // Remove a file from a course by fileId
   async removeFile(courseId: string, userId: string, fileId: string): Promise<ICourse | null> {
     return Course.findOneAndUpdate(
       { _id: courseId, userId: new mongoose.Types.ObjectId(userId) },
@@ -79,6 +88,7 @@ export const courseService = {
     );
   },
 
+  // Update the generation status of a course
   async updateStatus(courseId: string, status: ICourse['status']): Promise<ICourse | null> {
     return Course.findByIdAndUpdate(courseId, { $set: { status } }, { new: true });
   },

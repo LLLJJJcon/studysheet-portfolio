@@ -23,11 +23,13 @@ const COL_GAP = 2;             // mm between columns
 
 // ── helpers ──
 
+// Assign sequential order indices to all nodes via depth-first traversal
 function buildTreeOrder(node: ITreeNode, map: Map<string, number>, ctr: { i: number }) {
   map.set(node.nodeId, ctr.i++);
   for (const ch of node.children || []) buildTreeOrder(ch, map, ctr);
 }
 
+// Find a tree node by ID using depth-first search
 function findNode(tree: ITreeNode, id: string): ITreeNode | null {
   if (tree.nodeId === id) return tree;
   for (const ch of tree.children || []) {
@@ -37,6 +39,7 @@ function findNode(tree: ITreeNode, id: string): ITreeNode | null {
   return null;
 }
 
+// Find the parent of a node by its target ID
 function findParent(tree: ITreeNode, targetId: string): ITreeNode | null {
   for (const ch of tree.children || []) {
     if (ch.nodeId === targetId) return tree;
@@ -46,6 +49,7 @@ function findParent(tree: ITreeNode, targetId: string): ITreeNode | null {
   return null;
 }
 
+// Determine the number of layout columns based on available width and font size
 function determineColumnCount(usableWidth: number, fontSize: number): number {
   const charW = 0.35 * fontSize;
   const minCol = charW * 30; // ≥ 30 chars per line for readability
@@ -66,6 +70,7 @@ interface SizedGroup {
 
 // ── main ──
 
+// Compute a multi-column, multi-page layout by flowing grouped chunks into columns
 export function computeAlgorithmicLayout(
   chunks: IChunk[],
   tree: ITreeNode,

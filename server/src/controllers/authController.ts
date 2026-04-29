@@ -3,6 +3,7 @@ import { authService } from '../services/authService';
 import { AuthRequest } from '../middleware/auth';
 import { decrypt } from '../utils/encryption';
 
+// Decrypt an API key and return a masked version showing only first and last 4 characters
 function maskApiKey(encryptedKey: unknown): string | null {
   if (typeof encryptedKey !== 'string' || !encryptedKey) return null;
 
@@ -21,6 +22,7 @@ function maskApiKey(encryptedKey: unknown): string | null {
   }
 }
 
+// Strip sensitive fields from user object and mask API keys for client display
 function sanitizeUser(user: Record<string, unknown>) {
   const obj = typeof user.toObject === 'function' ? user.toObject() : { ...user };
   delete obj.passwordHash;
@@ -35,7 +37,9 @@ function sanitizeUser(user: Record<string, unknown>) {
   return obj;
 }
 
+// Controller handling user authentication, profile retrieval, and API key management
 export const authController = {
+  // Register a new user with email and password
   async register(req: Request, res: Response): Promise<void> {
     try {
       const { email, password } = req.body;
@@ -58,6 +62,7 @@ export const authController = {
     }
   },
 
+  // Authenticate user credentials and return a JWT token
   async login(req: Request, res: Response): Promise<void> {
     try {
       const { email, password } = req.body;
@@ -76,6 +81,7 @@ export const authController = {
     }
   },
 
+  // Return the currently authenticated user's profile
   async getMe(req: AuthRequest, res: Response): Promise<void> {
     try {
       const user = await authService.getUser(req.user!.userId);
@@ -89,6 +95,7 @@ export const authController = {
     }
   },
 
+  // Update the user's stored LLM provider API keys
   async updateApiKeys(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { openai, anthropic, gemini } = req.body;
@@ -103,6 +110,7 @@ export const authController = {
     }
   },
 
+  // Update user preferences such as preferred LLM provider and model
   async updateSettings(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { preferredProvider, openaiBaseUrl, preferredModel } = req.body;

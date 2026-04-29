@@ -9,6 +9,7 @@ const COMPRESSION_RULES: Record<string, string> = {
     'Compress lightly. Preserve most content but tighten language. Remove redundant phrasing and consolidate similar points. Target: 70-80% of original length.',
 };
 
+// Build the L3 prompt messages for compressing a chunk based on its importance level
 export function buildL3Prompt(
   importance: string,
   nodeId: string,

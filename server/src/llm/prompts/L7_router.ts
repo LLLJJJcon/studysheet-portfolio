@@ -1,3 +1,4 @@
+// Build the L7 router system prompt for classifying user intent and referenced chunks
 export function buildRouterSystemPrompt(
   chunkIndex: Array<{ nodeId: string; label: string }>
 ): string {

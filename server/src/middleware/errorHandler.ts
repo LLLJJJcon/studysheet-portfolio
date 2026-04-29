@@ -20,6 +20,7 @@ export interface RetryOptions {
   signal?: AbortSignal;
 }
 
+// Retry an async function with exponential backoff, supporting cancellation via AbortSignal
 export async function withRetry<T>(
   fn: () => Promise<T>,
   options: RetryOptions = {}
@@ -54,6 +55,7 @@ export async function withRetry<T>(
   throw lastError ?? new Error('Operation failed after retries');
 }
 
+// Express error handler that maps known error types to appropriate HTTP status codes
 export const errorHandler = (
   err: Error,
   _req: Request,

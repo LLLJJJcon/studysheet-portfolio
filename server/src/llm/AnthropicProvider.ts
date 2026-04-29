@@ -11,6 +11,7 @@ import {
 
 const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
 
+// LLM provider implementation for Anthropic Claude models
 export class AnthropicProvider implements LLMProvider {
   private client: Anthropic;
 
@@ -18,6 +19,7 @@ export class AnthropicProvider implements LLMProvider {
     this.client = new Anthropic({ apiKey });
   }
 
+  // Separate the system message from user/assistant messages for Anthropic API format
   private formatMessages(messages: ChatMessage[]): {
     system?: string;
     messages: Anthropic.MessageParam[];
@@ -39,6 +41,7 @@ export class AnthropicProvider implements LLMProvider {
     return { system, messages: formatted };
   }
 
+  // Send a non-streaming chat completion request to the Anthropic API
   async chat(params: ChatParams): Promise<ChatResponse> {
     const { system, messages } = this.formatMessages(params.messages);
 
@@ -61,6 +64,7 @@ export class AnthropicProvider implements LLMProvider {
     };
   }
 
+  // Stream chat completion responses as text delta events
   async *chatStream(params: ChatParams): AsyncIterable<StreamChunk> {
     const { system, messages } = this.formatMessages(params.messages);
 
@@ -80,6 +84,7 @@ export class AnthropicProvider implements LLMProvider {
     yield { content: '', done: true };
   }
 
+  // Execute a chat completion with tool-use support via the Anthropic API
   async *chatWithTools(params: AgentParams): AsyncIterable<AgentEvent> {
     const { system, messages } = this.formatMessages(params.messages);
 

@@ -15,6 +15,7 @@ export interface GeneratorChunkContext {
   pageWordLimit: number;
 }
 
+// Build the L7 generator system prompt for producing chunk edit suggestions
 export function buildGeneratorSystemPrompt(
   ctx: GeneratorChunkContext,
   relevantChunks?: GeneratorRelevantChunk[]

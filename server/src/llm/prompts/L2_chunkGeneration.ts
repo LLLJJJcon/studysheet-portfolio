@@ -10,6 +10,7 @@ const COMPLETENESS_RULES: Record<string, string> = {
     'Concise: only retain keywords and core conclusions. Keep to minimum essential information.',
 };
 
+// Serialize a subtree to indented text with importance and nodeId annotations
 function serializeSubtree(node: ITreeNode, depth = 0): string {
   const indent = '  '.repeat(depth);
   let result = `${indent}- ${node.name}`;
@@ -27,6 +28,7 @@ function serializeSubtree(node: ITreeNode, depth = 0): string {
   return result;
 }
 
+// Build the L2 prompt messages for generating chunk content per subtree leaf node
 export function buildL2Prompt(
   courseName: string,
   sourceFileContent: string,

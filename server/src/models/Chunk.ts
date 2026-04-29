@@ -13,6 +13,7 @@ export interface IChunk extends Document {
   updatedAt: Date;
 }
 
+// Mongoose schema defining a content chunk with course association and importance level
 const chunkSchema = new Schema<IChunk>(
   {
     courseId: {
@@ -57,4 +58,5 @@ const chunkSchema = new Schema<IChunk>(
 
 chunkSchema.index({ courseId: 1, nodeId: 1 }, { unique: true });
 
+// Mongoose model for study sheet content chunks
 export const Chunk = mongoose.model<IChunk>('Chunk', chunkSchema);

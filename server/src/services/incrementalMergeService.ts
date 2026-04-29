@@ -46,6 +46,7 @@ const L2_CONCURRENCY = 3;
 // Detects errors that indicate the LLM provider is rejecting every call
 // (rate-limit / quota / auth). Once this flips true we stop flogging a dead
 // horse instead of silently continuing the pipeline for minutes.
+// Detect rate-limit, quota, or auth errors that should halt the pipeline immediately
 function isFatalProviderError(err: unknown): boolean {
   if (!err || typeof err !== 'object') return false;
   const e = err as { status?: number; code?: string; message?: string };
@@ -67,6 +68,7 @@ interface TempChunk {
   sourceFile: string;
 }
 
+// Serialize a tree to an indented text representation with node IDs and importance
 function serializeTreeStructure(node: ITreeNode, depth = 0): string {
   const indent = '  '.repeat(depth);
   let line = `${indent}- ${node.name} (id: ${node.nodeId})`;
@@ -78,6 +80,7 @@ function serializeTreeStructure(node: ITreeNode, depth = 0): string {
   return line;
 }
 
+// Find a node in the tree by its ID using depth-first search
 function findNodeById(node: ITreeNode, nodeId: string): ITreeNode | null {
   if (node.nodeId === nodeId) return node;
   for (const child of node.children || []) {
@@ -87,6 +90,7 @@ function findNodeById(node: ITreeNode, nodeId: string): ITreeNode | null {
   return null;
 }
 
+// Collect all leaf nodes (nodes with no children) into an array
 function collectLeaves(node: ITreeNode, leaves: ITreeNode[]): void {
   if (!node.children || node.children.length === 0) {
     leaves.push(node);
@@ -95,11 +99,13 @@ function collectLeaves(node: ITreeNode, leaves: ITreeNode[]): void {
   for (const child of node.children || []) collectLeaves(child, leaves);
 }
 
+// Recursively collect nodeId-to-name mappings from a tree
 function collectNodeNames(node: ITreeNode, map: Map<string, string>): void {
   map.set(node.nodeId, node.name);
   for (const ch of node.children || []) collectNodeNames(ch, map);
 }
 
+// Create a deep clone of a tree node and all its descendants
 function deepCloneTree(node: ITreeNode): ITreeNode {
   return {
     nodeId: node.nodeId,
@@ -110,6 +116,7 @@ function deepCloneTree(node: ITreeNode): ITreeNode {
   };
 }
 
+// Replace all nodeIds with new UUIDs and record the old-to-new mapping
 function reassignIds(node: ITreeNode, idMap: Map<string, string>): ITreeNode {
   const newId = uuidv4();
   idMap.set(node.nodeId, newId);
@@ -120,6 +127,7 @@ function reassignIds(node: ITreeNode, idMap: Map<string, string>): ITreeNode {
   };
 }
 
+// Insert a new node under a parent in the tree, optionally relative to a sibling
 function insertNodeUnderParent(
   tree: ITreeNode,
   parentId: string,
@@ -150,7 +158,9 @@ function insertNodeUnderParent(
   return false;
 }
 
+// Service orchestrating the incremental merge of new files into existing course content
 export const incrementalMergeService = {
+  // Run the full incremental merge pipeline: generate, diff, merge content, re-layout
   async startMerge(
     courseId: string,
     userId: string,

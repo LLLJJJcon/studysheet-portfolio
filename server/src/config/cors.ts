@@ -1,6 +1,7 @@
 import cors from 'cors';
 import { config } from './index';
 
+// CORS configuration options allowing credentials and standard HTTP methods
 export const corsOptions: cors.CorsOptions = {
   origin: config.corsOrigin,
   credentials: true,

@@ -9,17 +9,21 @@ import { llmRateLimiter, is429Error } from './llmRateLimiter';
 /**
  * Wraps an LLMProvider to inject a default model into all calls.
  */
+// Wrapper that injects a default model name into all LLM provider calls
 class ModelBoundProvider implements LLMProvider {
   constructor(private inner: LLMProvider, private model: string) {}
 
+  // Delegate chat call to inner provider with the bound model as default
   chat(params: ChatParams): Promise<ChatResponse> {
     return this.inner.chat({ ...params, model: params.model || this.model });
   }
 
+  // Delegate streaming chat call with the bound model as default
   chatStream(params: ChatParams): AsyncIterable<StreamChunk> {
     return this.inner.chatStream({ ...params, model: params.model || this.model });
   }
 
+  // Delegate tool-use chat call with the bound model as default
   chatWithTools(params: AgentParams): AsyncIterable<AgentEvent> {
     return this.inner.chatWithTools({ ...params, model: params.model || this.model });
   }
@@ -37,9 +41,11 @@ class ModelBoundProvider implements LLMProvider {
  * acquire happens at iterator startup and any thrown error flows through
  * the same catch.
  */
+// Wrapper that enforces global rate limiting on all LLM calls after a 429 is detected
 class RateLimitedProvider implements LLMProvider {
   constructor(private inner: LLMProvider) {}
 
+  // Acquire rate-limit slot, execute chat, and trigger limiter on 429 errors
   async chat(params: ChatParams): Promise<ChatResponse> {
     await llmRateLimiter.acquire(params.signal);
     try {
@@ -52,6 +58,7 @@ class RateLimitedProvider implements LLMProvider {
     }
   }
 
+  // Rate-limited streaming chat that triggers the limiter on 429 errors
   async *chatStream(params: ChatParams): AsyncIterable<StreamChunk> {
     await llmRateLimiter.acquire(params.signal);
     try {
@@ -66,6 +73,7 @@ class RateLimitedProvider implements LLMProvider {
     }
   }
 
+  // Rate-limited tool-use chat that triggers the limiter on 429 errors
   async *chatWithTools(params: AgentParams): AsyncIterable<AgentEvent> {
     await llmRateLimiter.acquire(params.signal);
     try {
@@ -81,6 +89,7 @@ class RateLimitedProvider implements LLMProvider {
   }
 }
 
+// Create an LLM provider for a user based on their preferred provider, API key, and model
 export function createProvider(user: IUser): LLMProvider {
   const provider = user.preferredProvider || 'openai';
   const encryptedKey = user.apiKeys[provider as keyof typeof user.apiKeys];

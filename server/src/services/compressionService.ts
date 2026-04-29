@@ -16,12 +16,14 @@ interface CompressionResult {
   content: string;
 }
 
+// Service that compresses chunks level by level to fit within a word limit
 export const compressionService = {
   /**
    * Run serial L3 compression pipeline.
    * Compresses chunks level by level (Awareness → Important → High-Frequency)
    * until total word count is within the word limit.
    */
+  // Compress chunks by importance level until total words fit within the word limit
   async compressChunks(
     courseId: string,
     wordLimit: number,

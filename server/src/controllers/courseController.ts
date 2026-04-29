@@ -3,7 +3,9 @@ import { AuthRequest } from '../middleware/auth';
 import { courseService } from '../services/courseService';
 import { fileParserService } from '../services/fileParserService';
 
+// Controller for course CRUD operations and file upload management
 export const courseController = {
+  // List all courses belonging to the authenticated user
   async list(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courses = await courseService.list(req.user!.userId);
@@ -13,6 +15,7 @@ export const courseController = {
     }
   },
 
+  // Create a new course with name and page configuration
   async create(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { name, pageConfig } = req.body;
@@ -27,6 +30,7 @@ export const courseController = {
     }
   },
 
+  // Retrieve a single course by ID for the authenticated user
   async getById(req: AuthRequest, res: Response): Promise<void> {
     try {
       const course = await courseService.getById(req.params.id, req.user!.userId);
@@ -40,6 +44,7 @@ export const courseController = {
     }
   },
 
+  // Update course details such as name
   async update(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { name } = req.body;
@@ -54,6 +59,7 @@ export const courseController = {
     }
   },
 
+  // Delete a course and its associated data
   async delete(req: AuthRequest, res: Response): Promise<void> {
     try {
       const deleted = await courseService.delete(req.params.id, req.user!.userId);
@@ -67,6 +73,7 @@ export const courseController = {
     }
   },
 
+  // Remove a specific file from a course
   async removeFile(req: AuthRequest, res: Response): Promise<void> {
     try {
       const course = await courseService.removeFile(
@@ -84,6 +91,7 @@ export const courseController = {
     }
   },
 
+  // Upload and parse files, attaching extracted text to the course
   async uploadFiles(req: AuthRequest, res: Response): Promise<void> {
     try {
       const files = req.files as Express.Multer.File[];

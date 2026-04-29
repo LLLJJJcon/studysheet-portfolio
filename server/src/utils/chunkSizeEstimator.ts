@@ -9,6 +9,7 @@ import { countWords } from './wordCount';
 
 // Character width per pt: CJK ≈ 0.35, Latin ≈ 0.17
 // Detect ratio and interpolate
+// Calculate average character width in mm based on CJK vs Latin content ratio
 function charWidthForContent(content: string): number {
   const cjk = content.match(/[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/g);
   const ratio = cjk ? cjk.length / content.length : 0;
@@ -23,6 +24,7 @@ interface ChunkSize {
   lines: number;
 }
 
+// Estimate the rendered width, height, and line count of a chunk in millimeters
 export function estimateChunkSize(
   content: string,
   fontSize: number,
@@ -72,6 +74,7 @@ export function estimateChunkSize(
 /**
  * Estimate total area needed for all chunks on a page.
  */
+// Calculate the total rendering area needed for a list of chunks on a page
 export function estimateTotalArea(
   chunks: Array<{ content: string }>,
   fontSize: number,

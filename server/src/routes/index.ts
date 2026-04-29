@@ -5,6 +5,7 @@ import generationRoutes from './generationRoutes';
 import versionRoutes from './versionRoutes';
 import exportRoutes from './exportRoutes';
 
+// Root API router that mounts all sub-routers under their path prefixes
 const router = Router();
 
 router.use('/auth', authRoutes);

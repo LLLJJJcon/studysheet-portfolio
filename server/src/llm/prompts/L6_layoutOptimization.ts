@@ -24,6 +24,7 @@ interface PageConfig {
  * Given current chunk positions and sizes, the AI optimizes
  * the layout for better space utilization and readability.
  */
+// Build the L6 prompt messages for LLM-based layout optimization of chunk positions
 export function buildL6Prompt(
   chunkBBoxes: ChunkBBox[],
   pageConfig: PageConfig,
@@ -93,6 +94,7 @@ Optimize the layout of auto-positioned chunks while respecting user-positioned c
  * Pre-process chunks for L6: calculate bounding boxes and classify
  * user-positioned vs auto-positioned chunks.
  */
+// Extract chunk bounding boxes from containers with name and importance metadata
 export function classifyChunks(
   containers: Array<{
     id: string;

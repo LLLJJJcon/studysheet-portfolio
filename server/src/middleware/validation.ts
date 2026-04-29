@@ -11,15 +11,18 @@ type TreeNodeInput = z.infer<typeof baseNodeSchema> & {
   children?: TreeNodeInput[];
 };
 
+// Zod schema for a recursive content tree node with optional children
 export const treeNodeSchema: z.ZodType<TreeNodeInput> = baseNodeSchema.extend({
   children: z.lazy(() => treeNodeSchema.array()).optional(),
 });
 
+// Zod schema for L1 tree generation output
 export const l1OutputSchema = z.object({
   tree: treeNodeSchema,
 });
 
 // L2 chunk output
+// Zod schema for a single L2 chunk output entry
 export const l2ChunkSchema = z.object({
   node_id: z.string(),
   content: z.string(),
@@ -27,6 +30,7 @@ export const l2ChunkSchema = z.object({
 });
 
 // L3 compression output
+// Zod schema for L3 compression output containing compressed chunks
 export const l3OutputSchema = z.object({
   compressed_chunks: z.array(
     z.object({
@@ -38,6 +42,7 @@ export const l3OutputSchema = z.object({
 });
 
 // Page config
+// Zod schema for page configuration with size, dimensions, and page count
 export const pageConfigSchema = z.object({
   size: z.enum(['A4', '16:9', 'custom']),
   width: z.number().min(50).max(1000),
@@ -46,11 +51,13 @@ export const pageConfigSchema = z.object({
 });
 
 // Generation request
+// Zod schema for a study sheet generation request
 export const generateRequestSchema = z.object({
   courseId: z.string(),
 });
 
 // Chunk chat request
+// Zod schema for chunk chat request with message history and chunk context
 export const chunkChatSchema = z.object({
   messages: z.array(z.object({
     role: z.enum(['user', 'assistant']),

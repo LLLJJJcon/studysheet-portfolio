@@ -13,6 +13,7 @@ export interface IVersion extends Document {
   updatedAt: Date;
 }
 
+// Mongoose schema for versioned snapshots of tree, layout, and chunks
 const versionSchema = new Schema<IVersion>(
   {
     courseId: {
@@ -55,4 +56,5 @@ const versionSchema = new Schema<IVersion>(
 
 versionSchema.index({ courseId: 1, versionNumber: -1 });
 
+// Mongoose model for course version history
 export const Version = mongoose.model<IVersion>('Version', versionSchema);

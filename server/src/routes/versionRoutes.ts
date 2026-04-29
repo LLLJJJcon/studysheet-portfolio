@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { versionController } from '../controllers/versionController';
 import { authMiddleware } from '../middleware/auth';
 
+// Router for version management (list, save, restore, baseline, delete)
 const router = Router();
 
 router.use(authMiddleware);

@@ -4,6 +4,7 @@ export interface RetrieverChunkInput {
   content: string;
 }
 
+// Build the L7 retriever prompt for checking duplicate content across referenced chunks
 export function buildRetrieverSystemPrompt(
   chunkName: string,
   currentContent: string,

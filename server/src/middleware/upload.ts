@@ -3,14 +3,17 @@ import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
+// Resolved absolute path to the file upload directory
 const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || 'uploads');
 
+// Create the upload directory if it does not already exist
 const ensureUploadDir = () => {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 };
 
 ensureUploadDir();
 
+// Multer disk storage that saves files with UUID-based filenames
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     try {
@@ -26,6 +29,7 @@ const storage = multer.diskStorage({
   },
 });
 
+// Whitelist of accepted MIME types for file uploads
 const ALLOWED_MIMES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -39,6 +43,7 @@ const ALLOWED_MIMES = [
   'text/plain',
 ];
 
+// Reject files whose MIME type is not in the allowed list
 const fileFilter = (
   _req: Express.Request,
   file: Express.Multer.File,
@@ -53,6 +58,7 @@ const fileFilter = (
   }
 };
 
+// Configured multer instance with storage, file filter, and 50MB size limit
 export const upload = multer({
   storage,
   fileFilter,

@@ -18,6 +18,7 @@ const DEFAULT_FONT_SIZE = 7;
  * ratio 1.0-1.3 → linear interpolation 7pt → 6pt
  * ratio > 1.3 → 6pt (minimum)
  */
+// Calculate the optimal font size (6-10pt) based on content-to-limit ratio
 export function calculateFontSize(totalWords: number, wordLimit: number): number {
   if (wordLimit <= 0) return DEFAULT_FONT_SIZE;
 
@@ -42,6 +43,7 @@ export function calculateFontSize(totalWords: number, wordLimit: number): number
  * Get line height multiplier for a given font size.
  * Smaller fonts need slightly more line height for readability.
  */
+// Return the line height multiplier appropriate for the given font size
 export function getLineHeight(fontSize: number): number {
   if (fontSize <= 6) return 1.4;
   if (fontSize <= 7) return 1.35;
@@ -54,6 +56,7 @@ export function getLineHeight(fontSize: number): number {
  * Returns new fontSize and lineHeight if they differ from current values.
  * Used before L6 optimization to ensure layout uses the right font size.
  */
+// Recalculate font size and line height, reporting whether they changed
 export function reevaluateFontSize(
   currentFontSize: number,
   totalWords: number,

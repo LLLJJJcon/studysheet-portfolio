@@ -29,14 +29,17 @@ export interface RectPx {
   height: number;
 }
 
+// Convert millimeters to pixels at 96 DPI
 export function mmToPx(mm: number): number {
   return Math.round(mm * MM_TO_PX);
 }
 
+// Convert pixels to millimeters at 96 DPI
 export function pxToMm(px: number): number {
   return px / MM_TO_PX;
 }
 
+// Convert a rectangle from millimeters to pixels
 export function rectMmToPx(rect: RectMm): RectPx {
   return {
     x: mmToPx(rect.x),
@@ -46,6 +49,7 @@ export function rectMmToPx(rect: RectMm): RectPx {
   };
 }
 
+// Convert a rectangle from pixels to millimeters
 export function rectPxToMm(rect: RectPx): RectMm {
   return {
     x: pxToMm(rect.x),
@@ -59,6 +63,7 @@ export function rectPxToMm(rect: RectPx): RectMm {
  * Convert a page-relative mm position to absolute canvas pixel position.
  * Takes into account page index and page gaps.
  */
+// Convert a page-relative mm position to absolute canvas pixel position with page gaps
 export function pagePositionToCanvasPx(
   rect: RectMm,
   pageIndex: number,
@@ -77,6 +82,7 @@ export function pagePositionToCanvasPx(
 /**
  * Validate and clamp a chunk position to stay within page margins.
  */
+// Clamp a chunk position to stay within page margin boundaries
 export function clampToPageBounds(
   x: number,
   y: number,
@@ -103,6 +109,7 @@ export function clampToPageBounds(
  * - Clamp auto-positioned chunks to page bounds
  * - Validate no overlaps
  */
+// Post-process optimized chunk positions: skip user-positioned, clamp to bounds
 export function postProcessOptimizedLayout(
   optimizedChunks: Array<{ nodeId: string; page: number; x: number; y: number }>,
   originalChunks: Array<{

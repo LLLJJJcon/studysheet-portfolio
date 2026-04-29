@@ -1,5 +1,6 @@
 import { Response } from 'express';
 
+// Initialize an SSE connection by writing headers and flushing them
 export function initSSE(res: Response): void {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -10,6 +11,7 @@ export function initSSE(res: Response): void {
   res.flushHeaders();
 }
 
+// Send a named SSE event with JSON-serialized data
 export function sendSSE(res: Response, event: string, data: unknown): void {
   try {
     if (res.writableEnded || res.destroyed) return;
@@ -20,6 +22,7 @@ export function sendSSE(res: Response, event: string, data: unknown): void {
   }
 }
 
+// Send a final 'done' event and close the SSE connection
 export function endSSE(res: Response): void {
   try {
     if (res.writableEnded || res.destroyed) return;
@@ -30,6 +33,7 @@ export function endSSE(res: Response): void {
   }
 }
 
+// Send an error event via SSE and close the connection
 export function sendSSEError(res: Response, message: string, retryable = true): void {
   try {
     if (res.writableEnded || res.destroyed) return;

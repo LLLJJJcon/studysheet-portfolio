@@ -25,11 +25,13 @@ interface ChunkContextInput {
   chunkIndex: Array<{ nodeId: string; label: string }>;
 }
 
+// Map from router-classified intent to pipeline branch (A=retrieval, B=direct generation)
 const INTENT_BRANCH: Record<string, 'A' | 'B'> = {
   add: 'A', expand: 'A', compare: 'A', deduplicate: 'A',
   compress: 'B', rewrite: 'B', format: 'B', correct: 'B', translate: 'B',
 };
 
+// Build a user prompt from chat message history, including conversation context
 export function buildUserPrompt(messages: ChatMessageInput[]): string {
   if (messages.length === 0) return '';
 
@@ -47,6 +49,7 @@ export function buildUserPrompt(messages: ChatMessageInput[]): string {
   return `## Conversation History\n${history.join('\n\n')}\n\n## Current Request\n${currentRequest}`;
 }
 
+// Execute the three-stage chunk chat pipeline: route intent, retrieve context, generate response
 export async function runChunkChatPipeline(
   res: Response,
   provider: LLMProvider,

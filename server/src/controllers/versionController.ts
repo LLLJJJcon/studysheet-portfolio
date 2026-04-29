@@ -3,7 +3,9 @@ import { AuthRequest } from '../middleware/auth';
 import { versionService } from '../services/versionService';
 import { Course } from '../models/Course';
 
+// Controller for version management: list, get, save, baseline, restore, delete
 export const versionController = {
+  // List all saved versions for a course
   async list(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;
@@ -23,6 +25,7 @@ export const versionController = {
     }
   },
 
+  // Get a specific version snapshot by ID
   async get(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;
@@ -48,6 +51,7 @@ export const versionController = {
     }
   },
 
+  // Save the current course state as a new version snapshot
   async save(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;
@@ -73,6 +77,7 @@ export const versionController = {
     }
   },
 
+  // Mark a version as the baseline reference version
   async markBaseline(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;
@@ -99,6 +104,7 @@ export const versionController = {
     }
   },
 
+  // Restore a course to a previously saved version snapshot
   async restore(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;
@@ -124,6 +130,7 @@ export const versionController = {
     }
   },
 
+  // Delete a non-baseline version
   async delete(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;

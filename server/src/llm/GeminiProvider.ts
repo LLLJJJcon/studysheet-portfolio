@@ -16,6 +16,7 @@ import {
 
 const DEFAULT_MODEL = 'gemini-2.0-flash';
 
+// LLM provider implementation for Google Gemini models
 export class GeminiProvider implements LLMProvider {
   private client: GoogleGenerativeAI;
 
@@ -23,6 +24,7 @@ export class GeminiProvider implements LLMProvider {
     this.client = new GoogleGenerativeAI(apiKey);
   }
 
+  // Convert generic chat messages to Gemini's Content format, extracting system instruction
   private formatMessages(messages: ChatMessage[]): {
     systemInstruction?: string;
     contents: Content[];
@@ -44,6 +46,7 @@ export class GeminiProvider implements LLMProvider {
     return { systemInstruction, contents };
   }
 
+  // Send a non-streaming chat request to the Gemini API
   async chat(params: ChatParams): Promise<ChatResponse> {
     const { systemInstruction, contents } = this.formatMessages(params.messages);
 
@@ -74,6 +77,7 @@ export class GeminiProvider implements LLMProvider {
     };
   }
 
+  // Stream chat responses from the Gemini API
   async *chatStream(params: ChatParams): AsyncIterable<StreamChunk> {
     const { systemInstruction, contents } = this.formatMessages(params.messages);
 
@@ -98,6 +102,7 @@ export class GeminiProvider implements LLMProvider {
     yield { content: '', done: true };
   }
 
+  // Execute a chat completion with function-calling tool support via Gemini
   async *chatWithTools(params: AgentParams): AsyncIterable<AgentEvent> {
     const { systemInstruction, contents } = this.formatMessages(params.messages);
 

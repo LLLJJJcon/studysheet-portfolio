@@ -15,6 +15,7 @@ export interface IContentTree extends Document {
   updatedAt: Date;
 }
 
+// Mongoose schema for a single node in the hierarchical content tree
 const treeNodeSchema = new Schema<ITreeNode>({
   nodeId: { type: String, required: true },
   name: { type: String, required: true },
@@ -23,6 +24,7 @@ const treeNodeSchema = new Schema<ITreeNode>({
   children: { type: [Schema.Types.Mixed], default: [] },
 });
 
+// Mongoose schema for the full content tree associated with a course
 const contentTreeSchema = new Schema<IContentTree>(
   {
     courseId: { type: Schema.Types.ObjectId, ref: 'Course', required: true, unique: true },
@@ -31,4 +33,5 @@ const contentTreeSchema = new Schema<IContentTree>(
   { timestamps: true }
 );
 
+// Mongoose model for hierarchical content trees linked to courses
 export const ContentTree = mongoose.model<IContentTree>('ContentTree', contentTreeSchema);

@@ -4,9 +4,12 @@ import { User, IUser } from '../models/User';
 import { encrypt, decrypt } from '../utils/encryption';
 import { config } from '../config';
 
+// Number of bcrypt salt rounds for password hashing
 const SALT_ROUNDS = 12;
+// JWT token expiration duration
 const JWT_EXPIRES_IN = '7d';
 
+// Trim whitespace and remove surrounding quotes from a user-pasted API key
 function normalizeApiKey(value: string | null | undefined): string | null {
   if (value == null) return null;
   const trimmed = value.trim();
@@ -26,7 +29,9 @@ export interface AuthPayload {
   email: string;
 }
 
+// Service handling user registration, login, API key management, and settings
 export const authService = {
+  // Hash password and create a new user, returning the user and JWT token
   async register(email: string, password: string): Promise<{ user: IUser; token: string }> {
     const existing = await User.findOne({ email: email.toLowerCase() });
     if (existing) {
@@ -43,6 +48,7 @@ export const authService = {
     return { user, token };
   },
 
+  // Validate credentials and return user with JWT token
   async login(email: string, password: string): Promise<{ user: IUser; token: string }> {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
@@ -58,10 +64,12 @@ export const authService = {
     return { user, token };
   },
 
+  // Fetch user by ID, excluding the password hash
   async getUser(userId: string): Promise<IUser | null> {
     return User.findById(userId).select('-passwordHash');
   },
 
+  // Encrypt and store updated LLM provider API keys for a user
   async updateApiKeys(
     userId: string,
     apiKeys: { openai?: string | null; anthropic?: string | null; gemini?: string | null }
@@ -85,6 +93,7 @@ export const authService = {
     return User.findByIdAndUpdate(userId, { $set: update }, { new: true }).select('-passwordHash');
   },
 
+  // Update user preferences like preferred LLM provider, base URL, and model
   async updateSettings(
     userId: string,
     settings: { preferredProvider?: 'openai' | 'anthropic' | 'gemini'; openaiBaseUrl?: string | null; preferredModel?: string | null }
@@ -102,6 +111,7 @@ export const authService = {
     return User.findByIdAndUpdate(userId, { $set: update }, { new: true }).select('-passwordHash');
   },
 
+  // Decrypt and return the API key for the specified or preferred provider
   getDecryptedApiKey(user: IUser, provider?: string): string | null {
     const p = provider || user.preferredProvider;
     const encrypted = user.apiKeys[p as keyof typeof user.apiKeys];
@@ -114,6 +124,7 @@ export const authService = {
   },
 };
 
+// Sign a JWT token containing userId and email
 function generateToken(user: IUser): string {
   const payload: AuthPayload = {
     userId: user._id.toString(),

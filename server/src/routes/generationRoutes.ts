@@ -3,6 +3,7 @@ import { generationController } from '../controllers/generationController';
 import { authMiddleware } from '../middleware/auth';
 import { upload } from '../middleware/upload';
 
+// Router for study sheet generation, layout, content tree, and chunk operations
 const router = Router();
 
 router.use(authMiddleware);

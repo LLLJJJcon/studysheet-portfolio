@@ -20,13 +20,16 @@ import { chunkChatSchema } from '../middleware/validation';
 import { incrementalMergeService } from '../services/incrementalMergeService';
 import { cancellationRegistry } from '../services/cancellationRegistry';
 
+// Controller for study sheet generation, layout management, and content editing
 export const generationController = {
+  // Kick off the full study sheet generation pipeline via SSE
   async startGeneration(req: AuthRequest, res: Response): Promise<void> {
     const courseId = req.params.id;
     const userId = req.user!.userId;
     await generationOrchestrator.startGeneration(courseId, userId, res);
   },
 
+  // Retrieve the layout for a course, enriched with chunk content and node names
   async getLayout(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;
@@ -98,6 +101,7 @@ export const generationController = {
     }
   },
 
+  // Return the content tree structure for a course
   async getContentTree(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;
@@ -121,6 +125,7 @@ export const generationController = {
     }
   },
 
+  // Execute an LLM agent loop to apply user instructions to chunks via tool calls
   async cmdK(req: AuthRequest, res: Response): Promise<void> {
     const courseId = req.params.id;
     const userId = req.user!.userId;
@@ -219,6 +224,7 @@ export const generationController = {
     }
   },
 
+  // Recompute the algorithmic layout with optional column and font size overrides
   async relayout(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;
@@ -295,6 +301,7 @@ export const generationController = {
     }
   },
 
+  // Run LLM-powered layout optimization and stream results via SSE
   async optimizeLayout(req: AuthRequest, res: Response): Promise<void> {
     const courseId = req.params.id;
     const userId = req.user!.userId;
@@ -354,6 +361,7 @@ export const generationController = {
     }
   },
 
+  // Update the content of a single chunk by nodeId
   async updateChunk(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;
@@ -377,6 +385,7 @@ export const generationController = {
     }
   },
 
+  // Replace the entire content tree for a course
   async updateContentTree(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;
@@ -399,6 +408,7 @@ export const generationController = {
     }
   },
 
+  // Retrieve extracted text and metadata for a source file by fileId
   async getSourceFile(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;
@@ -422,6 +432,7 @@ export const generationController = {
     }
   },
 
+  // Stream the raw uploaded file, converting Office documents to PDF when possible
   async getRawFile(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;
@@ -463,6 +474,7 @@ export const generationController = {
     }
   },
 
+  // Persist updated layout containers from the client editor
   async saveLayout(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;
@@ -484,6 +496,7 @@ export const generationController = {
     }
   },
 
+  // Upload an image file and return its accessible URL
   async uploadImage(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;
@@ -504,6 +517,7 @@ export const generationController = {
       res.status(500).json({ error: 'Failed to upload image' });
     }
   },
+  // Handle a conversational chat session for editing a specific chunk via LLM
   async chunkChat(req: AuthRequest, res: Response): Promise<void> {
     const courseId = req.params.id;
     const nodeId = req.params.nodeId;
@@ -543,6 +557,7 @@ export const generationController = {
     }
   },
 
+  // Cancel an in-progress generation or merge for a course
   async cancelGeneration(req: AuthRequest, res: Response): Promise<void> {
     try {
       const courseId = req.params.id;
@@ -570,6 +585,7 @@ export const generationController = {
     }
   },
 
+  // Start an incremental merge of newly uploaded files into existing course content
   async startIncrementalMerge(req: AuthRequest, res: Response): Promise<void> {
     const courseId = req.params.id;
     const userId = req.user!.userId;
@@ -603,6 +619,7 @@ export const generationController = {
   },
 };
 
+// Extract a JSON changes array from LLM text output, handling code fences
 function parseChanges(text: string): unknown[] {
   // Extract JSON block from the text
   const jsonMatch = text.match(/```json\s*([\s\S]*?)```/);

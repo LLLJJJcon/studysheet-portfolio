@@ -6,7 +6,9 @@ import os from 'os';
 
 const execFileAsync = promisify(execFile);
 
+// Service for extracting text from uploaded files (PDF, Word, PPT, images)
 export const fileParserService = {
+  // Dispatch file parsing to the appropriate handler based on MIME type
   async parseFile(filePath: string, mimeType: string): Promise<string> {
     switch (mimeType) {
       case 'text/plain':
@@ -33,6 +35,7 @@ export const fileParserService = {
     }
   },
 
+  // Extract text from a PDF, falling back to OCR if the text layer is empty
   async parsePdf(filePath: string): Promise<string> {
     try {
       const pdfParse = (await import('pdf-parse')).default;
@@ -51,6 +54,7 @@ export const fileParserService = {
     }
   },
 
+  // Convert PDF pages to images and run Tesseract OCR on each page
   async ocrPdf(filePath: string, numPages?: number): Promise<string> {
     const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'ocr-'));
     try {
@@ -87,6 +91,7 @@ export const fileParserService = {
     }
   },
 
+  // Extract raw text from a Word document using mammoth
   async parseWord(filePath: string): Promise<string> {
     try {
       const mammoth = await import('mammoth');
@@ -98,6 +103,7 @@ export const fileParserService = {
     }
   },
 
+  // Extract text content from a PowerPoint file
   async parsePpt(filePath: string): Promise<string> {
     // Basic PPT parsing - extract text from slides
     try {
@@ -114,6 +120,7 @@ export const fileParserService = {
     }
   },
 
+  // Run Tesseract OCR to extract text from an image file
   async parseImage(filePath: string): Promise<string> {
     try {
       const outBase = filePath + '_ocr';

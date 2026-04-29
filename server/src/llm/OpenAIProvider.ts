@@ -10,6 +10,7 @@ import {
 
 const DEFAULT_MODEL = 'gpt-4o';
 
+// LLM provider implementation for OpenAI-compatible APIs
 export class OpenAIProvider implements LLMProvider {
   private client: OpenAI;
 
@@ -18,6 +19,7 @@ export class OpenAIProvider implements LLMProvider {
     this.client = new OpenAI({ apiKey, ...(cleanBase ? { baseURL: cleanBase } : {}) });
   }
 
+  // Send a non-streaming chat completion request to the OpenAI API
   async chat(params: ChatParams): Promise<ChatResponse> {
     const response = await this.client.chat.completions.create({
       model: params.model || DEFAULT_MODEL,
@@ -39,6 +41,7 @@ export class OpenAIProvider implements LLMProvider {
     };
   }
 
+  // Stream chat completion responses as delta events from the OpenAI API
   async *chatStream(params: ChatParams): AsyncIterable<StreamChunk> {
     const stream = await this.client.chat.completions.create({
       model: params.model || DEFAULT_MODEL,
@@ -59,6 +62,7 @@ export class OpenAIProvider implements LLMProvider {
     yield { content: '', done: true };
   }
 
+  // Execute a chat completion with function-calling tool support via OpenAI
   async *chatWithTools(params: AgentParams): AsyncIterable<AgentEvent> {
     const tools: OpenAI.ChatCompletionTool[] = params.tools.map((t) => ({
       type: 'function',

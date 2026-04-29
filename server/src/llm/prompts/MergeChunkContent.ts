@@ -1,5 +1,6 @@
 import { ChatMessage } from '../LLMProvider';
 
+// Build a prompt for merging supplementary content into an existing chunk
 export function buildMergeChunkContentPrompt(
   existingContent: string,
   newContent: string,

@@ -27,16 +27,19 @@ const DEFAULT_LIMIT = (() => {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 5;
 })();
 
+// Lazy-activated sliding-window rate limiter for LLM API calls
 class LLMRateLimiter {
   private enabled = false;
   private readonly limit = DEFAULT_LIMIT;
   private timestamps: number[] = [];
   private triggeredAt: number | null = null;
 
+  // Return whether the rate limiter has been activated by a 429 error
   isEnabled(): boolean {
     return this.enabled;
   }
 
+  // Return the configured requests-per-minute limit
   getLimit(): number {
     return this.limit;
   }
@@ -48,6 +51,7 @@ class LLMRateLimiter {
    * out the full 60s quota window (otherwise we'd immediately fire another
    * 4-5 calls that are guaranteed to 429 again).
    */
+  // Activate the rate limiter after a 429 error, seeding the sliding window
   trigger(reason?: string): void {
     if (this.enabled) return;
     this.enabled = true;
@@ -64,6 +68,7 @@ class LLMRateLimiter {
    * If disabled: no-op. If enabled: returns once there is room in the
    * 60s sliding window, otherwise awaits (abortable) until there is.
    */
+  // Wait for an available slot in the sliding window, respecting abort signals
   async acquire(signal?: AbortSignal): Promise<void> {
     if (!this.enabled) return;
 
@@ -87,6 +92,7 @@ class LLMRateLimiter {
   /**
    * For tests / admin endpoints only. Not currently exposed.
    */
+  // Reset the rate limiter to its initial disabled state
   reset(): void {
     this.enabled = false;
     this.timestamps = [];
@@ -94,6 +100,7 @@ class LLMRateLimiter {
   }
 }
 
+// Singleton global rate limiter instance shared across all LLM calls
 export const llmRateLimiter = new LLMRateLimiter();
 
 /**
@@ -101,6 +108,7 @@ export const llmRateLimiter = new LLMRateLimiter();
  * across OpenAI / Anthropic / Gemini shapes. We check both the HTTP status
  * and the message text because different SDKs surface them differently.
  */
+// Detect whether an error represents a rate-limit (429) response from any LLM provider
 export function is429Error(err: unknown): boolean {
   if (!err) return false;
   const e = err as {
