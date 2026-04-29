@@ -14,7 +14,8 @@ export class OpenAIProvider implements LLMProvider {
   private client: OpenAI;
 
   constructor(apiKey: string, baseURL?: string) {
-    this.client = new OpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) });
+    const cleanBase = baseURL?.replace(/\/(?:chat\/completions\/?|completions\/?)$/i, '').replace(/\/+$/, '') || undefined;
+    this.client = new OpenAI({ apiKey, ...(cleanBase ? { baseURL: cleanBase } : {}) });
   }
 
   async chat(params: ChatParams): Promise<ChatResponse> {
