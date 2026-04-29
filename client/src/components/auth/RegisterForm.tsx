@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { authApi } from '../../services/authApi';
 
 interface RegisterFormProps {
@@ -93,12 +93,6 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       >
         {loading ? 'Registering...' : 'Register'}
       </button>
-      <p className="text-center text-sm text-gray-600">
-        Already have an account?{' '}
-        <Link to="/login" className="text-blue-600 hover:underline">
-          Login
-        </Link>
-      </p>
     </form>
   );
 }

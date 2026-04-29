@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { authApi } from '../../services/authApi';
 
 interface LoginFormProps {
@@ -72,12 +72,6 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       >
         {loading ? 'Logging in...' : 'Login'}
       </button>
-      <p className="text-center text-sm text-gray-600">
-        No account yet?{' '}
-        <Link to="/register" className="text-blue-600 hover:underline">
-          Register
-        </Link>
-      </p>
     </form>
   );
 }
