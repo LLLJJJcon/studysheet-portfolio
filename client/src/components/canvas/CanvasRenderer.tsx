@@ -140,24 +140,11 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
     return m;
   }, [orderedItems]);
 
-  /* --- Page structure from pageMap --- */
-  const pageStructure = useMemo(() => {
-    if (!pageMap || pageMap.size === 0) return [];
-    const maxPage = Math.max(...Array.from(pageMap.values()).map((v) => v.page));
-    const pages: string[][][] = [];
-    for (let p = 0; p <= maxPage; p++) {
-      const cols: string[][] = [];
-      for (let c = 0; c < effectiveColumns; c++) cols.push([]);
-      pages.push(cols);
-    }
-    for (const item of orderedItems) {
-      const a = pageMap.get(item.id);
-      if (a && pages[a.page] && pages[a.page][a.col]) {
-        pages[a.page][a.col].push(item.id);
-      }
-    }
-    return pages;
-  }, [pageMap, orderedItems, effectiveColumns]);
+  /* --- Number of pages from measurement --- */
+  const numPages = useMemo(() => {
+    if (!pageMap || pageMap.size === 0) return 1;
+    return Math.max(...Array.from(pageMap.values()).map((v) => v.page)) + 1;
+  }, [pageMap]);
 
   /* --- Handlers --- */
   const handleInsertImage = useCallback((afterNodeId: string) => {
@@ -325,10 +312,13 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
     );
   }
 
-  /* --- Measurement container dimensions --- */
+  /* --- Measurement & continuous layout dimensions --- */
   const maxMeasurePages = 10;
   const totalMeasureCols = effectiveColumns * maxMeasurePages;
   const measureWidth = totalMeasureCols * colWidth + (totalMeasureCols - 1) * colGapPx;
+  const pageStep = effectiveColumns * (colWidth + colGapPx);
+  const totalVisualCols = effectiveColumns * numPages;
+  const totalVisualWidth = totalVisualCols * colWidth + (totalVisualCols - 1) * colGapPx;
 
   return (
     <>
@@ -393,7 +383,6 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
                     marginBottom: 2,
                     width: `${Math.min(colWidth, Math.max(80, (chunk.width || 20) * MM_TO_PX))}px`,
                     minHeight: `${Math.max(36, (chunk.height || 8) * MM_TO_PX)}px`,
-                    breakInside: 'avoid' as const,
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word',
                   }}
@@ -407,8 +396,8 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
         </div>
       )}
 
-      {/* Paginated visible content */}
-      {pageStructure.map((page, pageIdx) => (
+      {/* Continuous CSS column layout — one viewport per page */}
+      {Array.from({ length: numPages }, (_, pageIdx) => (
         <div
           key={pageIdx}
           style={{
@@ -417,44 +406,45 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
             top: pageIdx * (pageHeightPx + PAGE_GAP) + marginPx,
             width: contentAreaWidth,
             height: pageContentHeight,
-            display: 'grid',
-            gridTemplateColumns: `repeat(${effectiveColumns}, 1fr)`,
-            columnGap: colGapPx,
             overflow: 'hidden',
-            fontSize: `${fontSize}pt`,
-            lineHeight: 1.35,
           }}
         >
-          {page.map((colItemIds, colIdx) => (
-            <div key={colIdx}>
-              {colItemIds.map((itemId, itemIdx) => {
-                const item = itemMap.get(itemId);
-                if (!item) return null;
-                if (item.type === 'title') {
-                  const isTitleSelected = selectedContainerId === item.sectionId;
-                  return (
-                    <div
-                      key={item.id}
-                      className={`font-semibold truncate cursor-pointer rounded px-1 transition-colors ${
-                        isTitleSelected
-                          ? 'text-blue-700 bg-blue-50 ring-1 ring-blue-300'
-                          : 'text-gray-500 hover:bg-gray-100'
-                      }`}
-                      style={{ fontSize: '9px', lineHeight: '14px', marginBottom: 2 }}
-                      onClick={() => handleSelectSectionTitle(item.sectionId)}
-                      title={item.title}
-                    >
-                      {item.title}
-                    </div>
-                  );
-                }
-                const isLast =
-                  itemIdx === colItemIds.length - 1 ||
-                  itemMap.get(colItemIds[itemIdx + 1])?.type === 'title';
-                return renderChunkItem(item, isLast);
-              })}
-            </div>
-          ))}
+          <div
+            style={{
+              columnCount: totalVisualCols,
+              columnGap: colGapPx,
+              columnFill: 'auto' as const,
+              height: pageContentHeight,
+              width: totalVisualWidth,
+              transform: `translateX(${-pageIdx * pageStep}px)`,
+              fontSize: `${fontSize}pt`,
+              lineHeight: 1.35,
+            }}
+          >
+            {orderedItems.map((item, idx) => {
+              if (item.type === 'title') {
+                const isTitleSelected = selectedContainerId === item.sectionId;
+                return (
+                  <div
+                    key={item.id}
+                    className={`font-semibold truncate cursor-pointer rounded px-1 transition-colors ${
+                      isTitleSelected
+                        ? 'text-blue-700 bg-blue-50 ring-1 ring-blue-300'
+                        : 'text-gray-500 hover:bg-gray-100'
+                    }`}
+                    style={{ fontSize: '9px', lineHeight: '14px', marginBottom: 2, breakAfter: 'avoid' as const }}
+                    onClick={() => handleSelectSectionTitle(item.sectionId)}
+                    title={item.title}
+                  >
+                    {item.title}
+                  </div>
+                );
+              }
+              const nextItem = orderedItems[idx + 1];
+              const isLast = !nextItem || nextItem.type === 'title';
+              return renderChunkItem(item, isLast);
+            })}
+          </div>
         </div>
       ))}
     </>

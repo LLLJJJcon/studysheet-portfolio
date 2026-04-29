@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { ChunkToolbar } from './ChunkToolbar';
 import { useCanvasStore } from '../../stores/canvasStore';
 import { useTreeStore } from '../../stores/treeStore';
@@ -94,11 +95,8 @@ export const ChunkComponent: React.FC<ChunkProps> = ({
     (e: React.MouseEvent) => {
       e.stopPropagation();
       onSelect(nodeId);
-      if (sourceFile && onShowSource) {
-        onShowSource(nodeId);
-      }
     },
-    [nodeId, onSelect, sourceFile, onShowSource]
+    [nodeId, onSelect]
   );
 
   const handleDoubleClick = useCallback(
@@ -248,6 +246,8 @@ export const ChunkComponent: React.FC<ChunkProps> = ({
         borderTop: showInsertBefore ? '3px solid #3b82f6' : undefined,
         borderBottom: showInsertAfter ? '3px solid #3b82f6' : undefined,
         position: 'relative',
+        WebkitBoxDecorationBreak: 'clone',
+        boxDecorationBreak: 'clone' as const,
       }}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
@@ -293,7 +293,7 @@ export const ChunkComponent: React.FC<ChunkProps> = ({
             }
             return (
               <div className="text-gray-800 chunk-markdown">
-                <ReactMarkdown>{content}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
               </div>
             );
           })()
