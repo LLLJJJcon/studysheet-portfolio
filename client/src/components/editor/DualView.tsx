@@ -8,6 +8,7 @@ interface DualViewProps {
   maxLeftWidth?: number;     // percentage
 }
 
+// Render a resizable split-pane layout with draggable divider between left and right panels
 export const DualView: React.FC<DualViewProps> = ({
   leftPanel,
   rightPanel,

@@ -13,6 +13,7 @@ interface AuthState {
   setShowApiKeyModal: (show: boolean) => void;
 }
 
+// Create the authentication store managing user session, token, and API key modal state
 export const useAuthStore = create<AuthState>((set, _get) => ({
   token: localStorage.getItem('token'),
   user: null,

@@ -8,6 +8,7 @@ import { useChunkChatStore } from '../../stores/chunkChatStore';
 import { TreeNode } from '../../types/tree';
 import { MM_TO_PX } from '../../utils/constants';
 
+// Traverse the tree to find the source file associated with a target node
 function findSourceFile(node: TreeNode, targetId: string, ancestorSource?: string): string | undefined {
   const src = node.sourceFile || ancestorSource;
   if (node.nodeId === targetId) return src;
@@ -37,18 +38,21 @@ interface ChunkProps {
   onInsertImage?: (afterNodeId: string) => void;
 }
 
+// Importance-level to CSS class mapping for chunk border and background colors
 const IMPORTANCE_COLORS: Record<string, string> = {
   'High-Frequency': 'border-red-300 bg-red-50',
   Important: 'border-blue-300 bg-blue-50',
   Awareness: 'border-gray-300 bg-gray-50',
 };
 
+// Importance-level to highlight ring color mapping for selected/highlighted chunks
 const HIGHLIGHT_RING: Record<string, string> = {
   'High-Frequency': 'ring-red-400',
   Important: 'ring-blue-400',
   Awareness: 'ring-gray-400',
 };
 
+// Render a single chunk with inline editing, drag-and-drop, resize, markdown preview, and toolbar
 export const ChunkComponent: React.FC<ChunkProps> = ({
   nodeId,
   content,

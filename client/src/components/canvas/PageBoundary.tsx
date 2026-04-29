@@ -9,6 +9,7 @@ interface PageBoundaryProps {
   totalPages: number;
 }
 
+// Render a single page boundary with page number label and margin guides
 export const PageBoundary: React.FC<PageBoundaryProps> = ({
   pageIndex,
   widthPx,

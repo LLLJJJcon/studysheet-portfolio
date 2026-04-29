@@ -8,10 +8,7 @@ interface ExportModalProps {
   onClose: () => void;
 }
 
-/**
- * Export format selector modal.
- * Supports HTML and PDF export with download.
- */
+// Render the export modal with HTML and PDF format selection and download
 export const ExportModal: React.FC<ExportModalProps> = ({
   courseId,
   courseName,

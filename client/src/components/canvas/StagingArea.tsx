@@ -14,10 +14,7 @@ interface StagingAreaProps {
   onDoubleClickChunk?: (nodeId: string) => void;
 }
 
-/**
- * Off-page staging area rendered below the last page.
- * Chunks dragged off-page land here; users can drag them back onto pages.
- */
+// Render the off-page staging area where chunks can be temporarily placed before being re-assigned
 export const StagingArea: React.FC<StagingAreaProps> = ({
   pageWidth,
   pageHeight,

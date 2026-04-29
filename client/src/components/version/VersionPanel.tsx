@@ -17,6 +17,7 @@ interface VersionPanelProps {
   onRestored?: () => void;
 }
 
+// Render the version history side panel with timeline, restore, baseline, and snapshot controls
 export const VersionPanel: React.FC<VersionPanelProps> = ({
   courseId,
   isOpen,

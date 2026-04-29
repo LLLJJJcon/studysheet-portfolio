@@ -114,6 +114,7 @@ interface TreeState {
   moveNode: (nodeId: string, newParentId: string, refSiblingId: string | null, position: 'before' | 'after') => void;
 }
 
+// Create the tree store managing the content tree structure, node selection, and tree mutations
 export const useTreeStore = create<TreeState>()(
   subscribeWithSelector((set) => ({
     tree: null,
@@ -147,8 +148,7 @@ export const useTreeStore = create<TreeState>()(
   }))
 );
 
-// Cross-store sync between tree and canvas selection/highlight
-// This is set up in initStoreSync() to avoid circular imports
+// Initialize bidirectional sync between tree and canvas selection/highlight states
 export async function initTreeCanvasSync() {
   const { useCanvasStore } = await import('./canvasStore');
 

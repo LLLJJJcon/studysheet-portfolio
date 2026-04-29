@@ -12,10 +12,7 @@ interface WordCountResult {
   perChunk: ChunkWordCount[];
 }
 
-/**
- * Real-time word count tracker.
- * Computes total and per-chunk word counts from canvas store chunk content.
- */
+// Hook computing real-time total and per-chunk word counts from canvas store content
 export function useWordCount(): WordCountResult {
   const containers = useCanvasStore((s) => s.containers);
 

@@ -16,6 +16,7 @@ interface ContainerBoxProps {
   children?: React.ReactNode;
 }
 
+// Render a positioned container box with title bar and alignment guides on the canvas
 export const ContainerBox: React.FC<ContainerBoxProps> = ({
   id,
   title,

@@ -5,11 +5,13 @@ interface PageConfigFormProps {
   onCancel: () => void;
 }
 
+// Preset page dimensions for standard sizes
 const PRESETS = {
   A4: { width: 210, height: 297 },
   '16:9': { width: 338, height: 190 },
 };
 
+// Render the page configuration form with size presets, dimensions, columns, and font settings
 export function PageConfigForm({ onSubmit, onCancel }: PageConfigFormProps) {
   const [size, setSize] = useState<'A4' | '16:9' | 'custom'>('A4');
   const [width, setWidth] = useState(210);

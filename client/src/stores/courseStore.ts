@@ -12,6 +12,7 @@ interface CourseState {
   setCurrentCourse: (course: Course | null) => void;
 }
 
+// Create the course store managing course list, current course, and CRUD operations
 export const useCourseStore = create<CourseState>((set) => ({
   courses: [],
   currentCourse: null,

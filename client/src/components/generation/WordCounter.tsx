@@ -7,6 +7,7 @@ interface WordCounterProps {
   showPerChunk?: boolean;
 }
 
+// Render the word count indicator with progress bar and optional per-chunk breakdown
 export const WordCounter: React.FC<WordCounterProps> = ({ targetWordCount, showPerChunk = false }) => {
   const generationWordCount = useGenerationStore((s) => s.totalWordCount);
   const { totalWords: canvasWordCount, perChunk } = useWordCount();

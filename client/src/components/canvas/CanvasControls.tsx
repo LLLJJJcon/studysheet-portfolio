@@ -6,9 +6,7 @@ interface CanvasControlsProps {
   isOptimizing?: boolean;
 }
 
-/**
- * Canvas control bar with AI Layout Optimization button and other canvas actions.
- */
+// Render the canvas control bar with the AI layout optimization button and confirmation popover
 export const CanvasControls: React.FC<CanvasControlsProps> = ({
   courseId: _courseId,
   onOptimizeLayout,

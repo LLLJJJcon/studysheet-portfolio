@@ -7,11 +7,7 @@ interface CmdKInputProps {
   isLoading?: boolean;
 }
 
-/**
- * Inline Cmd+K input box.
- * Appears when user presses Cmd/Ctrl+K in the editor.
- * Accepts a natural language editing instruction.
- */
+// Render the Cmd+K floating input box for submitting natural language editing instructions
 export const CmdKInput: React.FC<CmdKInputProps> = ({
   isVisible,
   onSubmit,
@@ -107,9 +103,7 @@ export const CmdKInput: React.FC<CmdKInputProps> = ({
   );
 };
 
-/**
- * Hook to listen for Cmd/Ctrl+K shortcut.
- */
+// Hook that listens for the Cmd/Ctrl+K keyboard shortcut and triggers a callback
 export function useCmdKShortcut(onTrigger: () => void) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

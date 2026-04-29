@@ -19,6 +19,7 @@ interface UseChunkResizeOptions {
   minHeight?: number; // mm
 }
 
+// Hook for handling chunk resize via mouse drag on edge/corner handles
 export function useChunkResize({
   onResizeEnd,
   scale,

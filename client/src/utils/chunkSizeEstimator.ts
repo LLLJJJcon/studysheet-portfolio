@@ -13,6 +13,7 @@ interface ChunkSize {
   lines: number;
 }
 
+// Estimate chunk dimensions in pixels based on content length, font size, and available width
 export function estimateChunkSizePx(
   content: string,
   fontSize: number,

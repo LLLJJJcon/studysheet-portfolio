@@ -1,12 +1,14 @@
 import { useCallback } from 'react';
 import { Importance } from '../../types/tree';
 
+// Color and label mappings for each importance level tag
 const COLORS: Record<Importance, { bg: string; text: string; label: string }> = {
   'High-Frequency': { bg: 'bg-red-100', text: 'text-red-700', label: 'High' },
   Important: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Imp' },
   Awareness: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Aware' },
 };
 
+// Ordered cycle of importance levels for click-to-toggle behavior
 const CYCLE_ORDER: Importance[] = ['High-Frequency', 'Important', 'Awareness'];
 
 interface ImportanceTagProps {
@@ -15,6 +17,7 @@ interface ImportanceTagProps {
   onCycle?: (newImportance: Importance) => void;
 }
 
+// Render a clickable importance level badge that cycles through levels on click
 export function ImportanceTag({ importance, onClick, onCycle }: ImportanceTagProps) {
   const color = COLORS[importance];
 

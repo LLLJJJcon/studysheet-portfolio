@@ -7,6 +7,7 @@ const MIN_FONT_SIZE = 6;
 const MAX_FONT_SIZE = 10;
 const DEFAULT_FONT_SIZE = 7;
 
+// Calculate font size (6-10pt) based on the word count to word limit ratio
 export function calculateFontSize(totalWords: number, wordLimit: number): number {
   if (wordLimit <= 0) return DEFAULT_FONT_SIZE;
 
@@ -25,6 +26,7 @@ export function calculateFontSize(totalWords: number, wordLimit: number): number
   }
 }
 
+// Return the appropriate line height multiplier for a given font size
 export function getLineHeight(fontSize: number): number {
   if (fontSize <= 6) return 1.4;
   if (fontSize <= 7) return 1.35;
@@ -32,10 +34,7 @@ export function getLineHeight(fontSize: number): number {
   return 1.25;
 }
 
-/**
- * Re-evaluate font size based on current total word count.
- * Returns new fontSize and lineHeight if they differ from current values.
- */
+// Re-evaluate font size and line height, returning whether they changed from current values
 export function reevaluateFontSize(
   currentFontSize: number,
   totalWords: number,

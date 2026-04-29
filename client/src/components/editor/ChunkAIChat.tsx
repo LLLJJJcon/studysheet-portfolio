@@ -16,6 +16,7 @@ interface ChunkAIChatProps {
   courseId: string;
 }
 
+// Render the AI chat drawer panel for editing a selected chunk with streaming responses
 export const ChunkAIChat: React.FC<ChunkAIChatProps> = ({ courseId }) => {
   const isOpen = useChunkChatStore((s) => s.isOpen);
   const targetNodeId = useChunkChatStore((s) => s.targetNodeId);

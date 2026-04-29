@@ -7,6 +7,7 @@ interface SuggestionBlockProps {
   onCopy: () => void;
 }
 
+// Render an AI suggestion block with copy and apply buttons
 export const SuggestionBlock: React.FC<SuggestionBlockProps> = ({
   content,
   applied,

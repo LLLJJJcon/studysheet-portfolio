@@ -5,6 +5,7 @@ interface RegisterPageProps {
   onRegister: (token: string) => void;
 }
 
+// Render the registration page with account creation form and login link
 export function RegisterPage({ onRegister }: RegisterPageProps) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">

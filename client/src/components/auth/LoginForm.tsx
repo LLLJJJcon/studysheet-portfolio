@@ -6,6 +6,7 @@ interface LoginFormProps {
   onSuccess: (token: string) => void;
 }
 
+// Render the login form with email and password fields and error handling
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

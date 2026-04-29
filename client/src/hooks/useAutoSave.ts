@@ -9,10 +9,7 @@ interface UseAutoSaveOptions {
   enabled?: boolean;
 }
 
-/**
- * Auto-save hook with debounced triggering.
- * Saves a version snapshot every 60s (or 5s after last state change).
- */
+// Auto-save hook that periodically saves version snapshots with debounced and throttled triggers
 export function useAutoSave({ courseId, enabled = true }: UseAutoSaveOptions) {
   const lastSaveRef = useRef<number>(0);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>();

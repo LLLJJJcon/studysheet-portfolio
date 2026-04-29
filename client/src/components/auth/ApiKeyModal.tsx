@@ -20,6 +20,7 @@ const steps = [
   },
 ];
 
+// Render the onboarding and API key configuration modal for first-time users
 export function ApiKeyModal() {
   const { showApiKeyModal, setShowApiKeyModal, fetchUser, user } = useAuthStore();
   const [step, setStep] = useState(0);

@@ -8,10 +8,7 @@ interface PrintPreviewProps {
   onExport: () => void;
 }
 
-/**
- * Print-ready preview component.
- * Loads the HTML export and renders it in an iframe for preview.
- */
+// Render a full-screen print preview with the exported HTML loaded in an iframe
 export const PrintPreview: React.FC<PrintPreviewProps> = ({
   courseId,
   isOpen,

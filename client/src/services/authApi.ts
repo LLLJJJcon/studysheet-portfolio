@@ -1,5 +1,6 @@
 import api from './api';
 
+// Authentication API client for register, login, profile, and settings endpoints
 export const authApi = {
   register(email: string, password: string) {
     return api.post('/auth/register', { email, password });

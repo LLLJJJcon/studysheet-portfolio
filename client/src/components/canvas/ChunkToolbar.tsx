@@ -10,6 +10,7 @@ interface ChunkToolbarProps {
   anchorEl?: HTMLElement | null;
 }
 
+// Render a floating toolbar near the selected chunk with source, AI, and delete actions
 export const ChunkToolbar: React.FC<ChunkToolbarProps> = ({
   nodeId,
   onDelete,

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useGenerationStore } from '../../stores/generationStore';
 
+// Human-readable labels for each generation pipeline phase
 const PHASE_LABELS: Record<string, string> = {
   idle: 'Ready',
   'l1:generating': 'L1: Generate knowledge point tree...',
@@ -16,6 +17,7 @@ const PHASE_LABELS: Record<string, string> = {
   'merge:running': 'Incremental Merge in progress...',
 };
 
+// Display labels for each importance level used during compression phase
 const IMPORTANCE_LABELS: Record<string, string> = {
   Awareness: 'Understanding level',
   Important: 'Importance level',
@@ -27,6 +29,7 @@ interface GenerationStatusProps {
   cancelling?: boolean;
 }
 
+// Render the generation progress card with phase indicators, progress bars, and streaming console
 export const GenerationStatus: React.FC<GenerationStatusProps> = ({ onCancel, cancelling = false }) => {
   const phase = useGenerationStore((s) => s.phase);
   const error = useGenerationStore((s) => s.error);

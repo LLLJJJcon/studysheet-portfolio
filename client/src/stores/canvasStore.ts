@@ -59,6 +59,7 @@ interface CanvasState {
   addChunk: (nodeId: string, content: string, importance: string, afterNodeId?: string) => void;
 }
 
+// Create the canvas store managing chunk layout, selection, positioning, and reordering on the canvas
 export const useCanvasStore = create<CanvasState>()(subscribeWithSelector((set) => ({
   containers: [],
   fontSize: 7,

@@ -20,6 +20,7 @@ import { useAutoSave } from '../hooks/useAutoSave';
 import { ChunkAIChat } from '../components/editor/ChunkAIChat';
 import { MM_TO_PX } from '../utils/constants';
 
+// Render the main editor page with tree view, canvas, generation controls, and version history
 export const EditorPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -863,6 +864,7 @@ body {
   );
 };
 
+// Escape special HTML characters to prevent XSS in exported PDF content
 function escapeHtmlStr(text: string): string {
   return text
     .replace(/&/g, '&amp;')

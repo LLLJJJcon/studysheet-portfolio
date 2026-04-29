@@ -20,6 +20,7 @@ interface HistoryState {
   clear: () => void;
 }
 
+// Create the history store managing undo/redo action stacks for reversible operations
 export const useHistoryStore = create<HistoryState>((set, get) => ({
   past: [],
   future: [],

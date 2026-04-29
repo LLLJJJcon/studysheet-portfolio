@@ -7,6 +7,7 @@ interface CourseListProps {
   onDelete: (id: string) => void;
 }
 
+// Render a responsive grid of course cards or an empty state message
 export function CourseList({ courses, onOpen, onDelete }: CourseListProps) {
   if (courses.length === 0) {
     return (

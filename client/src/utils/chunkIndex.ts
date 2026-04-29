@@ -2,6 +2,7 @@ import { Container } from '../stores/canvasStore';
 import { TreeNode } from '../types/tree';
 import { getTreePath } from './treePath';
 
+// Build a labeled index of all chunks for the chat context, excluding the target chunk
 export function buildChunkIndex(
   containers: Container[],
   tree: TreeNode,

@@ -5,6 +5,7 @@ interface LoadingProps {
   className?: string;
 }
 
+// Render a spinning loader with an optional message in configurable sizes
 export function Loading({ message, size = 'md', className = '' }: LoadingProps) {
   const sizeClasses = {
     sm: 'w-4 h-4 border-2',
@@ -26,6 +27,7 @@ interface FullPageLoadingProps {
   message?: string;
 }
 
+// Render a full-screen overlay loading spinner
 export function FullPageLoading({ message = 'Loading...' }: FullPageLoadingProps) {
   return (
     <div className="fixed inset-0 bg-white bg-opacity-80 z-50 flex items-center justify-center">
@@ -34,7 +36,7 @@ export function FullPageLoading({ message = 'Loading...' }: FullPageLoadingProps
   );
 }
 
-// Generation phase progress display
+// Label and description mappings for each generation phase
 const phaseLabels: Record<string, { label: string; description: string }> = {
   idle: { label: '', description: '' },
   'l1:generating': { label: 'Step 1/4', description: 'Generating content tree...' },
@@ -52,6 +54,7 @@ interface GenerationProgressProps {
   totalWords?: number;
 }
 
+// Render a progress bar with phase label and word count for the generation pipeline
 export function GenerationProgress({
   phase,
   l2Progress = 0,
@@ -106,12 +109,12 @@ export function GenerationProgress({
   );
 }
 
-// Skeleton placeholder
 interface SkeletonProps {
   className?: string;
   lines?: number;
 }
 
+// Render animated placeholder skeleton lines for loading states
 export function Skeleton({ className = '', lines = 1 }: SkeletonProps) {
   return (
     <div className={`space-y-2 ${className}`}>

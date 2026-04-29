@@ -1,8 +1,4 @@
-/**
- * Count words/characters for content sizing.
- * For CJK text, counts characters. For Latin text, counts words.
- * Returns a unified "word count" suitable for page estimation.
- */
+// Count words for Latin text and characters for CJK text, returning a unified word count
 export function countWords(text: string): number {
   if (!text || !text.trim()) return 0;
 
@@ -20,15 +16,13 @@ export function countWords(text: string): number {
   return cjkCount + latinCount;
 }
 
-/**
- * Estimate how many pages the content will occupy.
- * charsPerPage depends on page format (A4=6600, 16:9=4200).
- */
+// Estimate the number of pages needed for a given word count and page capacity
 export function estimatePages(wordCount: number, charsPerPage: number): number {
   if (charsPerPage <= 0) return 0;
   return Math.ceil(wordCount / charsPerPage);
 }
 
+// Character capacity per page for each supported page format
 export const CHARS_PER_PAGE: Record<string, number> = {
   A4: 6600,
   '16:9': 4200,

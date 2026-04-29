@@ -24,6 +24,7 @@ interface ChangePreviewProps {
   onClose: () => void;
 }
 
+// Label, color, and icon mappings for each change type in the preview panel
 const TYPE_LABELS: Record<string, { label: string; color: string; icon: string }> = {
   update_content: { label: 'Modify content', color: 'text-blue-600 bg-blue-50', icon: '✏️' },
   delete_node: { label: 'Delete node', color: 'text-red-600 bg-red-50', icon: '🗑️' },
@@ -31,11 +32,7 @@ const TYPE_LABELS: Record<string, { label: string; color: string; icon: string }
   update_importance: { label: 'Adjust importance', color: 'text-amber-600 bg-amber-50', icon: '🏷️' },
 };
 
-/**
- * Structured change preview panel.
- * Shows each proposed change with Accept / Reject buttons per item,
- * plus Accept All / Reject All actions.
- */
+// Render the AI change preview panel with per-item and bulk accept/reject actions
 export const ChangePreview: React.FC<ChangePreviewProps> = ({
   changes,
   onAccept,
@@ -131,7 +128,7 @@ export const ChangePreview: React.FC<ChangePreviewProps> = ({
   );
 };
 
-/** Individual change card */
+// Render an individual change card with diff display and accept/reject buttons
 const ChangeItemCard: React.FC<{
   change: ChangeItem;
   onAccept: () => void;

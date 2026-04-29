@@ -33,6 +33,7 @@ interface GenerationState {
   reset: () => void;
 }
 
+// Create the generation store tracking cheat sheet generation phases, progress, and errors
 export const useGenerationStore = create<GenerationState>((set) => ({
   phase: 'idle',
   error: null,

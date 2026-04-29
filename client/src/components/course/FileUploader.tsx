@@ -7,6 +7,7 @@ interface FileUploaderProps {
   onUploadComplete: (newFileIds: string[]) => void;
 }
 
+// Render a drag-and-drop file upload area with progress feedback
 export function FileUploader({ courseId, onUploadComplete }: FileUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);

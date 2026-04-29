@@ -12,6 +12,7 @@ interface LayoutCanvasProps {
 
 const PAGE_GAP = 20; // px gap between pages
 
+// Render the zoomable and pannable canvas viewport with page boundaries
 export const LayoutCanvas: React.FC<LayoutCanvasProps> = ({
   pageWidth,
   pageHeight,

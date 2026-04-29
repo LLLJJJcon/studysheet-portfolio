@@ -16,6 +16,7 @@ interface UseDragAndDropOptions {
   scale: number;
 }
 
+// Hook for handling chunk drag-and-drop with mouse position tracking in mm coordinates
 export function useDragAndDrop({ onDragEnd, scale }: UseDragAndDropOptions) {
   const [dragState, setDragState] = useState<DragState | null>(null);
   const dragRef = useRef<DragState | null>(null);

@@ -13,6 +13,7 @@ interface TreeNodeActionsProps {
   depth: number;
 }
 
+// Render action buttons for adding child/sibling nodes and deleting a tree node
 export const TreeNodeActions: React.FC<TreeNodeActionsProps> = ({
   nodeId,
   depth,
@@ -124,7 +125,7 @@ export const TreeNodeActions: React.FC<TreeNodeActionsProps> = ({
   );
 };
 
-// Tree manipulation helpers
+// Insert a new child node under the specified parent
 function insertChild(tree: TreeNode, parentId: string, newNode: TreeNode): TreeNode {
   if (tree.nodeId === parentId) {
     return { ...tree, children: [...tree.children, newNode] };
@@ -135,6 +136,7 @@ function insertChild(tree: TreeNode, parentId: string, newNode: TreeNode): TreeN
   };
 }
 
+// Insert a new node as a sibling immediately after the specified node
 function insertSibling(tree: TreeNode, siblingId: string, newNode: TreeNode): TreeNode {
   const newChildren = [];
   for (const child of tree.children) {
@@ -154,6 +156,7 @@ function insertSibling(tree: TreeNode, siblingId: string, newNode: TreeNode): Tr
   };
 }
 
+// Find a node by ID in the tree using depth-first traversal
 function findNode(node: TreeNode, targetId: string): TreeNode | null {
   if (node.nodeId === targetId) return node;
   for (const child of node.children) {
@@ -163,6 +166,7 @@ function findNode(node: TreeNode, targetId: string): TreeNode | null {
   return null;
 }
 
+// Remove a node and its subtree from the tree
 function removeNode(tree: TreeNode, nodeId: string): TreeNode | null {
   if (tree.nodeId === nodeId) return null;
 

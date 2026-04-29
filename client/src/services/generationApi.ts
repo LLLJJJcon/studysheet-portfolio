@@ -22,6 +22,7 @@ export type CmdKEventHandler = {
   onDone?: () => void;
 };
 
+// Generation API client for cheat sheet generation, layout, content tree, and Cmd+K operations
 export const generationApi = {
   getGenerateUrl(courseId: string): string {
     return `${API_URL}/courses/${courseId}/generate`;

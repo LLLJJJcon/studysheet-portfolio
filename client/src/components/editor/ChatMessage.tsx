@@ -10,6 +10,7 @@ interface ChatMessageProps {
   onCopy?: (content: string) => void;
 }
 
+// Render a single chat message bubble for user, assistant, or welcome roles
 export const ChatMessage: React.FC<ChatMessageProps> = ({
   message,
   onApply,

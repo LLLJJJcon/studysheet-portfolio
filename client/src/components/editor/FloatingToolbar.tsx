@@ -11,6 +11,7 @@ interface FloatingToolbarProps {
   onCancel: () => void;
 }
 
+// Render a floating text editor with save/cancel toolbar for inline chunk editing
 export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
   nodeId,
   content,

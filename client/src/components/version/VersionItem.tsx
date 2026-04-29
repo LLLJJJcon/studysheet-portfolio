@@ -11,6 +11,7 @@ interface VersionItemProps {
   onDelete?: (versionId: string) => void;
 }
 
+// Render a single version entry card with restore, baseline, and delete actions
 export const VersionItem: React.FC<VersionItemProps> = ({
   versionId,
   versionNumber,

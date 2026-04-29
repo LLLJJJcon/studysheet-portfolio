@@ -1,6 +1,7 @@
 import api from './api';
 import { PageConfig } from '../types/course';
 
+// Course API client for CRUD operations and file management
 export const courseApi = {
   list() {
     return api.get('/courses');

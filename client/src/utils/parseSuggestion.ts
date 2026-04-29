@@ -1,5 +1,6 @@
 import { SuggestionItem } from '../stores/chunkChatStore';
 
+// Extract a suggestion block from AI response content using delimiter markers
 export function parseSuggestion(content: string): {
   cleanContent: string;
   suggestion: SuggestionItem | null;

@@ -14,6 +14,7 @@ import { initTreeCanvasSync } from './stores/treeStore';
 // Initialize cross-store sync (tree ↔ canvas highlighting)
 initTreeCanvasSync();
 
+// Root application component defining routes, authentication, and cross-store initialization
 function App() {
   const { token, fetchUser, setToken } = useAuthStore();
 

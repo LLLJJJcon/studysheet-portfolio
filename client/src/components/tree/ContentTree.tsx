@@ -30,6 +30,7 @@ const H_GAP = 96;
 const V_GAP = 26;
 const PADDING = 20;
 
+// Render the interactive content tree with node selection, drag-and-drop, expand/collapse, and AI chat
 export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, onSelect: propOnSelect, loading }: ContentTreeProps) {
   const { id: courseId } = useParams<{ id: string }>();
   const storeTree = useTreeStore((s) => s.tree);
@@ -325,6 +326,7 @@ export function ContentTree({ tree: propTree, selectedNodeId: propSelectedId, on
   );
 }
 
+// Render a small colored pill badge indicating the importance level of a tree node
 function ImportancePill({ importance }: { importance: NonNullable<TreeNodeType['importance']> }) {
   if (importance === 'High-Frequency') {
     return <span className="text-[10px] px-1 py-0.5 rounded bg-red-100 text-red-700">High</span>;
@@ -335,6 +337,7 @@ function ImportancePill({ importance }: { importance: NonNullable<TreeNodeType['
   return <span className="text-[10px] px-1 py-0.5 rounded bg-orange-100 text-orange-700">Imp</span>;
 }
 
+// Compute x/y positions for all tree nodes using a recursive horizontal layout algorithm
 function computeTreeLayout(
   root: TreeNodeType,
   expandedNodeIds: Set<string>,
@@ -406,6 +409,7 @@ function computeTreeLayout(
   return { nodes, edges, width, height };
 }
 
+// Calculate the width and height of a tree node based on its expanded state and text length
 function getNodeDimensions(
   isExpanded: boolean,
   expandedText: string
@@ -432,7 +436,7 @@ function getNodeDimensions(
   };
 }
 
-// Helper functions
+// Find a node by its ID in the tree using depth-first search
 function findNode(tree: TreeNodeType, nodeId: string): TreeNodeType | null {
   if (tree.nodeId === nodeId) return tree;
   for (const child of tree.children) {
@@ -442,6 +446,7 @@ function findNode(tree: TreeNodeType, nodeId: string): TreeNodeType | null {
   return null;
 }
 
+// Recursively update a node in the tree by applying an updater function
 function updateNodeInTree(
   tree: TreeNodeType,
   nodeId: string,
@@ -454,10 +459,12 @@ function updateNodeInTree(
   };
 }
 
+// Collect all node IDs in a subtree for cascade operations
 function collectNodeIds(node: TreeNodeType): string[] {
   return [node.nodeId, ...node.children.flatMap(collectNodeIds)];
 }
 
+// Remove a node and its subtree from the tree, returning null if root is removed
 function removeNode(tree: TreeNodeType, nodeId: string): TreeNodeType | null {
   if (tree.nodeId === nodeId) return null;
   return {
@@ -468,6 +475,7 @@ function removeNode(tree: TreeNodeType, nodeId: string): TreeNodeType | null {
   };
 }
 
+// Find the parent node of a given node ID in the tree
 function findParentNode(tree: TreeNodeType, nodeId: string): TreeNodeType | null {
   for (const child of tree.children) {
     if (child.nodeId === nodeId) return tree;
@@ -477,6 +485,7 @@ function findParentNode(tree: TreeNodeType, nodeId: string): TreeNodeType | null
   return null;
 }
 
+// Insert a child node under the specified parent node
 function insertChild(tree: TreeNodeType, parentId: string, node: TreeNodeType): TreeNodeType {
   if (tree.nodeId === parentId) {
     return { ...tree, children: [...tree.children, node] };

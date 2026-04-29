@@ -6,6 +6,7 @@ interface UseSSEOptions {
   onDone?: () => void;
 }
 
+// Hook for connecting to a server-sent events stream and dispatching parsed events
 export function useSSE({ onEvent, onError, onDone }: UseSSEOptions) {
   const abortRef = useRef<AbortController | null>(null);
 

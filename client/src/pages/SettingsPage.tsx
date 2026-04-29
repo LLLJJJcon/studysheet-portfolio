@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { authApi } from '../services/authApi';
 
+// Render the settings page for managing API keys, LLM provider, and account preferences
 export function SettingsPage() {
   const { user, fetchUser, logout } = useAuthStore();
   const navigate = useNavigate();

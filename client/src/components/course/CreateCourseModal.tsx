@@ -9,6 +9,7 @@ interface CreateCourseModalProps {
   onCreated: (course: Course) => void;
 }
 
+// Render the two-step modal for creating a new course with name input and page config
 export function CreateCourseModal({ show, onClose, onCreated }: CreateCourseModalProps) {
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');

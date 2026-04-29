@@ -7,6 +7,7 @@ import { Loading } from '../components/common/Loading';
 import api from '../services/api';
 import { Course } from '../types/course';
 
+// Render the course list page with create, open, and delete course actions
 export function CourseListPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);

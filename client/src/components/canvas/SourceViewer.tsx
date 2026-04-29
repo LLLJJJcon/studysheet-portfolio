@@ -22,6 +22,7 @@ interface FileMeta {
   fileId?: string;
 }
 
+// Render the source file viewer panel showing PDF or text content with highlight navigation
 export const SourceViewer: React.FC<SourceViewerProps> = ({
   courseId,
   sourceFile,
@@ -77,8 +78,6 @@ export const SourceViewer: React.FC<SourceViewerProps> = ({
   );
 };
 
-// ========== PDF Viewer ==========
-
 interface PdfViewerProps {
   courseId: string;
   fileId: string;
@@ -90,6 +89,7 @@ interface PdfViewerProps {
   onClose: () => void;
 }
 
+// Render a PDF viewer with page navigation, zoom controls, and source anchor detection
 const PdfViewer: React.FC<PdfViewerProps> = ({
   courseId,
   fileId,
@@ -312,8 +312,6 @@ const PdfViewer: React.FC<PdfViewerProps> = ({
   );
 };
 
-// ========== Text Viewer (fallback for non-PDF) ==========
-
 interface TextViewerProps {
   filename: string;
   content: string;
@@ -323,6 +321,7 @@ interface TextViewerProps {
   onClose: () => void;
 }
 
+// Render a text source viewer with line numbers and highlighted source range
 const TextViewer: React.FC<TextViewerProps> = ({
   filename,
   content,

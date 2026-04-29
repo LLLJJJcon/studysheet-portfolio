@@ -10,6 +10,7 @@ interface State {
   error: Error | null;
 }
 
+// Catch and display React rendering errors with a retry button fallback
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false, error: null };
 
@@ -52,7 +53,6 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-// Toast notification system
 export interface Toast {
   id: string;
   type: 'success' | 'error' | 'info' | 'warning';
@@ -63,10 +63,12 @@ export interface Toast {
 let toastListeners: ((toasts: Toast[]) => void)[] = [];
 let currentToasts: Toast[] = [];
 
+// Notify all subscribed listeners of the current toast list
 function notifyListeners() {
   toastListeners.forEach((fn) => fn([...currentToasts]));
 }
 
+// Global toast notification manager for showing success, error, info, and warning messages
 export const toast = {
   show(type: Toast['type'], message: string, duration = 4000) {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -119,6 +121,7 @@ const typeIcons: Record<Toast['type'], string> = {
   warning: '⚠',
 };
 
+// Render the fixed-position toast notification container in the bottom-right corner
 export function ToastContainer() {
   const [toasts, setToasts] = React.useState<Toast[]>([]);
 

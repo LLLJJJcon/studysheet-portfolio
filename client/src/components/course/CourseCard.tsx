@@ -6,6 +6,7 @@ interface CourseCardProps {
   onDelete: (id: string) => void;
 }
 
+// Status text labels for displaying course state
 const STATUS_LABELS: Record<string, string> = {
   created: 'Pending',
   uploading: 'Uploading...',
@@ -13,6 +14,7 @@ const STATUS_LABELS: Record<string, string> = {
   editing: 'Editing',
 };
 
+// Status-based CSS color classes for the course status badge
 const STATUS_COLORS: Record<string, string> = {
   created: 'bg-gray-100 text-gray-700',
   uploading: 'bg-yellow-100 text-yellow-700',
@@ -20,6 +22,7 @@ const STATUS_COLORS: Record<string, string> = {
   editing: 'bg-green-100 text-green-700',
 };
 
+// Render a course card with name, status badge, file count, and delete button
 export function CourseCard({ course, onOpen, onDelete }: CourseCardProps) {
   return (
     <div

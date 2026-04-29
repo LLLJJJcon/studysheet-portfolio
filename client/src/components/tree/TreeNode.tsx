@@ -15,6 +15,7 @@ interface TreeNodeProps {
   dragOverNodeId?: string | null;
 }
 
+// Render a single tree node with inline editing, expand/collapse, drag-and-drop, and importance cycling
 export function TreeNode({
   node,
   depth,
@@ -170,6 +171,7 @@ export function TreeNode({
   );
 }
 
+// Recursively update a node's name in the tree
 function updateNodeName(tree: TreeNodeType, nodeId: string, name: string): TreeNodeType {
   if (tree.nodeId === nodeId) {
     return { ...tree, name };
@@ -180,6 +182,7 @@ function updateNodeName(tree: TreeNodeType, nodeId: string, name: string): TreeN
   };
 }
 
+// Recursively update a node's importance level in the tree
 function updateNodeImportance(tree: TreeNodeType, nodeId: string, importance: Importance): TreeNodeType {
   if (tree.nodeId === nodeId) {
     return { ...tree, importance };

@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { useHistoryStore } from '../stores/historyStore';
 
+// Hook providing undo/redo actions with Ctrl+Z/Ctrl+Shift+Z keyboard shortcuts
 export function useUndoRedo() {
   const undo = useHistoryStore((s) => s.undo);
   const redo = useHistoryStore((s) => s.redo);

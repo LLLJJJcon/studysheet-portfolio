@@ -24,10 +24,12 @@ type OrderedItem = {
   chunk?: ChunkPosition;
 };
 
+// Collect all node IDs in a subtree including the root node
 function collectSubtreeNodeIds(node: TreeNode): string[] {
   return [node.nodeId, ...node.children.flatMap(collectSubtreeNodeIds)];
 }
 
+// Render all chunks in a CSS-column layout with drag-and-drop reordering and pagination
 export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   pageWidthPx,
   pageHeightPx,

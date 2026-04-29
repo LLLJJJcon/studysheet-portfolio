@@ -6,6 +6,7 @@ interface RegisterFormProps {
   onSuccess: (token: string) => void;
 }
 
+// Render the registration form with email, password, and confirm password fields
 export function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

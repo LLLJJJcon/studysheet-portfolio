@@ -31,6 +31,7 @@ interface ChunkChatState {
   applySuggestion: (messageId: string) => void;
 }
 
+// Default welcome message displayed when the chunk chat panel opens
 const WELCOME_MESSAGE: ChatMessage = {
   id: 'welcome',
   role: 'welcome',
@@ -45,6 +46,7 @@ What would you like to do?`,
   timestamp: 0,
 };
 
+// Create the chunk chat store managing AI chat panel state, messages, and streaming responses
 export const useChunkChatStore = create<ChunkChatState>((set) => ({
   isOpen: false,
   targetNodeId: null,
