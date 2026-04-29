@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { SuggestionBlock } from './SuggestionBlock';
 import type { ChatMessage as ChatMessageType } from '../../stores/chunkChatStore';
 
@@ -39,7 +40,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     <div className="flex justify-start">
       <div className="max-w-[85%]">
         <div className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm prose prose-sm max-w-none">
-          <ReactMarkdown>{message.content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
         </div>
         {message.suggestion && (
           <SuggestionBlock
