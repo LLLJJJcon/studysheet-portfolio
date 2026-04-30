@@ -3,7 +3,16 @@
 AI-powered exam cheatsheet generator. Upload course materials → AI builds an exam-point content tree → Adjust and generate a draggable, editable chunk layout → Export as PDF / HTML.
 
 ## Demo Video
+
 [![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/2wg5UHxdGtU/0.jpg)](https://www.youtube.com/watch?v=2wg5UHxdGtU)
+
+## Team Members (Group 21)
+
+| Name        | Matriculation Number |
+| ----------- | -------------------- |
+| Tay Dinghan | A0328839L            |
+| Luo Tian    | A0330220E            |
+| Liang Jing  | A0328957J            |
 
 ## 1. Problem Statement
 
@@ -30,19 +39,21 @@ University students preparing for closed-book or cheatsheet-allowed exams face a
 5. **Provider-agnostic LLM**: Supporting OpenAI, Anthropic, and Gemini (plus any OpenAI-compatible API) with a single abstraction.
 
 ## 2. Solution Architecture
+
 ### Version Iteration Workflow (Wireframes)
 
 The two wireframes below illustrate the core interaction flow during version iteration, from AI content generation to final layout placement:
 
 #### Wireframe A (Initial Draft)
+
 ![Wireframe A](images/wireframe-a.png)
 
-
 #### Wireframe B (Refined Draft)
+
 ![Wireframe B](images/wireframe-b.png)
 
-
 #### Current UI (After Iteration)
+
 ![Current UI](images/current-ui.png)
 
 ### Workflow Description
@@ -93,47 +104,50 @@ The two wireframes below illustrate the core interaction flow during version ite
 
 ### Generation Pipeline (L1 → L4)
 
-| Stage | Input | Output | Method |
-|-------|-------|--------|--------|
-| **L1** Tree | Raw text from files | Hierarchical knowledge tree (JSON) | LLM streaming |
-| **L2** Chunks | Tree + source text | Content chunks per leaf node | LLM (3 concurrent subtrees) |
-| **L3** Compress | Chunks by importance | Condensed chunks fitting word limit | LLM per importance level |
-| **L4** Layout | Chunks + page config | Container positions (x, y, w, h) | Algorithmic bin-packing |
+| Stage           | Input                | Output                              | Method                      |
+| --------------- | -------------------- | ----------------------------------- | --------------------------- |
+| **L1** Tree     | Raw text from files  | Hierarchical knowledge tree (JSON)  | LLM streaming               |
+| **L2** Chunks   | Tree + source text   | Content chunks per leaf node        | LLM (3 concurrent subtrees) |
+| **L3** Compress | Chunks by importance | Condensed chunks fitting word limit | LLM per importance level    |
+| **L4** Layout   | Chunks + page config | Container positions (x, y, w, h)    | Algorithmic bin-packing     |
 
 ### Module Breakdown
 
-| Module | Responsibility |
-|--------|---------------|
-| `client/src/stores/` | Zustand state management (auth, canvas, tree, generation, chat) |
-| `client/src/components/canvas/` | WYSIWYG page editor with drag-drop, resize, CSS column splitting |
-| `server/src/llm/` | Provider factory, rate limiter, prompt templates |
-| `server/src/services/generationOrchestrator.ts` | L1-L4 pipeline with SSE streaming and cancellation |
-| `server/src/utils/algorithmicLayout.ts` | Column-based layout engine with binary search optimization |
+| Module                                          | Responsibility                                                   |
+| ----------------------------------------------- | ---------------------------------------------------------------- |
+| `client/src/stores/`                            | Zustand state management (auth, canvas, tree, generation, chat)  |
+| `client/src/components/canvas/`                 | WYSIWYG page editor with drag-drop, resize, CSS column splitting |
+| `server/src/llm/`                               | Provider factory, rate limiter, prompt templates                 |
+| `server/src/services/generationOrchestrator.ts` | L1-L4 pipeline with SSE streaming and cancellation               |
+| `server/src/utils/algorithmicLayout.ts`         | Column-based layout engine with binary search optimization       |
 
 ## 3. Legal / Open-Source Aspects
 
 ### Open-Source Libraries Used
 
-| Library | License | Usage |
-|---------|---------|-------|
-| React 18 | MIT | Frontend framework |
-| Express | MIT | Backend framework |
-| MongoDB / Mongoose | SSPL / MIT | Database / ODM |
-| OpenAI SDK | Apache 2.0 | LLM provider client |
-| Anthropic SDK | MIT | LLM provider client |
-| Google Generative AI | Apache 2.0 | LLM provider client |
-| dnd-kit | MIT | Drag-and-drop functionality |
-| Tailwind CSS | MIT | Styling |
-| react-markdown + remark-gfm | MIT | Markdown rendering |
-| Vite | MIT | Build tooling |
-| mammoth.js | BSD-2 | DOCX parsing |
-| pdf-parse | MIT | PDF text extraction |
+| Library                     | License    | Usage                       |
+| --------------------------- | ---------- | --------------------------- |
+| React 18                    | MIT        | Frontend framework          |
+| Express                     | MIT        | Backend framework           |
+| MongoDB / Mongoose          | SSPL / MIT | Database / ODM              |
+| OpenAI SDK                  | Apache 2.0 | LLM provider client         |
+| Anthropic SDK               | MIT        | LLM provider client         |
+| Google Generative AI        | Apache 2.0 | LLM provider client         |
+| dnd-kit                     | MIT        | Drag-and-drop functionality |
+| Tailwind CSS                | MIT        | Styling                     |
+| react-markdown + remark-gfm | MIT        | Markdown rendering          |
+| Vite                        | MIT        | Build tooling               |
+| mammoth.js                  | BSD-2      | DOCX parsing                |
+| pdf-parse                   | MIT        | PDF text extraction         |
 
 All dependencies use permissive licenses (MIT, Apache 2.0, BSD) compatible with both open-source and commercial use.
+
+**Code Originality:** All application code, business logic, prompt engineering, and UI implementation in this repository is entirely original and written by the team, except for the standard usage of the aforementioned open-source libraries. No proprietary source code was copied from external repositories.
 
 ### Open-Sourcing Potential
 
 The project can be open-sourced under the **MIT License**. Key considerations:
+
 - **No proprietary LLM dependency**: Users bring their own API keys; no vendor lock-in.
 - **No sensitive data in repo**: API keys are encrypted at rest; `.env` files are gitignored.
 - **Prompt templates are the IP**: The LLM prompts in `server/src/llm/prompts/` represent the core differentiation — they could be kept proprietary while open-sourcing the framework.
@@ -146,13 +160,13 @@ The project can be open-sourced under the **MIT License**. Key considerations:
 
 ## 4. Competition Analysis
 
-| Product | Approach | Limitations |
-|---------|----------|-------------|
-| **Cheatsheet Generator (various)** | Template-based, manual input | No AI content extraction; user does all the work |
-| **ChatGPT / Claude (direct)** | Paste text → ask for summary | No structured layout; no page-fitting; no drag-drop editing |
-| **Notion AI** | AI-assisted note editing | General-purpose; no exam-specific prioritization or page layout |
-| **Cram / Quizlet** | Flashcard generation | Different goal (recall testing vs. reference sheet) |
-| **Napkin AI** | AI-powered visual content | Focused on presentations, not dense reference sheets |
+| Product                            | Approach                     | Limitations                                                     |
+| ---------------------------------- | ---------------------------- | --------------------------------------------------------------- |
+| **Cheatsheet Generator (various)** | Template-based, manual input | No AI content extraction; user does all the work                |
+| **ChatGPT / Claude (direct)**      | Paste text → ask for summary | No structured layout; no page-fitting; no drag-drop editing     |
+| **Notion AI**                      | AI-assisted note editing     | General-purpose; no exam-specific prioritization or page layout |
+| **Cram / Quizlet**                 | Flashcard generation         | Different goal (recall testing vs. reference sheet)             |
+| **Napkin AI**                      | AI-powered visual content    | Focused on presentations, not dense reference sheets            |
 
 ### StudySheet's Differentiators
 
@@ -165,6 +179,7 @@ The project can be open-sourced under the **MIT License**. Key considerations:
 ## 5. Front-End Features
 
 ### Authentication & Settings
+
 - User registration and login with JWT persistence
 - API key configuration for OpenAI, Anthropic, Gemini
 - Custom OpenAI-compatible base URL (for AiHubMix, DeepSeek, GLM, etc.)
@@ -172,12 +187,14 @@ The project can be open-sourced under the **MIT License**. Key considerations:
 - Settings page with account management and logout
 
 ### Course Management
+
 - Create / list / update / delete courses
 - Page configuration (size, columns, word limit, font size)
 - Multi-file upload (PDF, DOCX, PPTX, TXT, images) with drag-and-drop
 - File list display with per-file deletion
 
 ### Generation Pipeline UI
+
 - Real-time SSE streaming of L1-L4 generation progress
 - Elapsed time tracking and per-stage progress indicators
 - L2 subtree completion badges and percentage
@@ -186,6 +203,7 @@ The project can be open-sourced under the **MIT License**. Key considerations:
 - Streaming console showing partial JSON output
 
 ### Canvas / Page Editor
+
 - WYSIWYG multi-page layout with visual page boundaries
 - CSS column layout with automatic chunk splitting across columns and pages
 - Drag-and-drop chunk reordering within and between sections
@@ -199,6 +217,7 @@ The project can be open-sourced under the **MIT License**. Key considerations:
 - `box-decoration-break: clone` for clean visual splitting of chunks
 
 ### Content Tree Panel
+
 - Interactive tree visualization with expand / collapse
 - Node selection with canvas highlighting sync
 - Drag-and-drop node reorganization
@@ -206,6 +225,7 @@ The project can be open-sourced under the **MIT License**. Key considerations:
 - Tree zoom controls
 
 ### AI Chunk Chat
+
 - Per-chunk AI assistant with multi-turn conversation
 - Streaming response with token-by-token rendering
 - Intent-aware pipeline (expand, compress, rewrite, translate, deduplicate, etc.)
@@ -214,17 +234,20 @@ The project can be open-sourced under the **MIT License**. Key considerations:
 - Word count awareness and page limit constraints
 
 ### Version Management
+
 - Auto-save with debounced triggering (5s after changes)
 - Manual snapshots with custom labels
 - Version timeline with restore and baseline marking
 - Save-on-unload via `sendBeacon` API
 
 ### Export
+
 - HTML export with print-ready multi-column CSS
 - PDF export via headless browser rendering
 - Format selector modal with download
 
 ### Markdown Rendering
+
 - Full GFM support (tables, strikethrough, task lists) via `remark-gfm`
 - Code blocks, headings, bold, lists, blockquotes, images
 - Table styling with borders and compact padding
@@ -251,6 +274,7 @@ Client → POST /generate → SSE connection held open
 ### Third-Party API Integration
 
 All LLM calls are made **from the backend only** — the frontend never contacts LLM providers directly. This design ensures:
+
 - API keys stay server-side (encrypted in MongoDB, decrypted only at call time)
 - Rate limiting is enforced globally across all user actions
 - Prompt templates are not exposed to the client
@@ -265,18 +289,19 @@ The `ProviderFactory` selects the provider based on user preferences, decrypts t
 
 ### Key Architectural Decisions
 
-| Decision | Rationale |
-|----------|-----------|
-| SSE over WebSocket | Generation is server-push only; SSE is simpler, works through proxies, auto-reconnects |
-| Provider Factory pattern | Adding a new LLM provider requires only one new class implementing `LLMProvider` |
-| Algorithmic layout (no LLM for L4) | Layout is deterministic and fast; LLM-based layout was unreliable |
-| User-provided API keys | No operational cost for LLM usage; users control spend; no rate-limit contention |
-| Encrypted key storage | AES-256-GCM encryption at rest; keys decrypted only in-memory at call time |
-| AbortController for cancellation | Propagates cancel signal through rate limiter, LLM stream, and database operations |
+| Decision                           | Rationale                                                                              |
+| ---------------------------------- | -------------------------------------------------------------------------------------- |
+| SSE over WebSocket                 | Generation is server-push only; SSE is simpler, works through proxies, auto-reconnects |
+| Provider Factory pattern           | Adding a new LLM provider requires only one new class implementing `LLMProvider`       |
+| Algorithmic layout (no LLM for L4) | Layout is deterministic and fast; LLM-based layout was unreliable                      |
+| User-provided API keys             | No operational cost for LLM usage; users control spend; no rate-limit contention       |
+| Encrypted key storage              | AES-256-GCM encryption at rest; keys decrypted only in-memory at call time             |
+| AbortController for cancellation   | Propagates cancel signal through rate limiter, LLM stream, and database operations     |
 
 ## 7. Back-End Features
 
 ### Authentication & Security
+
 - JWT-based authentication with 7-day token expiry
 - Bcrypt password hashing (12 salt rounds)
 - AES-256-GCM encryption for stored API keys
@@ -284,6 +309,7 @@ The `ProviderFactory` selects the provider based on user preferences, decrypts t
 - API key masking in responses (show only first/last 4 chars)
 
 ### Course & File Management
+
 - Full CRUD for courses with user isolation
 - Multi-file upload via Multer (up to 20 files per request)
 - File parsing: PDF (text layer + OCR fallback), DOCX (mammoth.js), PPTX, TXT, images
@@ -291,6 +317,7 @@ The `ProviderFactory` selects the provider based on user preferences, decrypts t
 - Cascading delete (course → tree, chunks, layout, versions)
 
 ### LLM Integration
+
 - **3 providers**: OpenAI (+ any compatible API), Anthropic, Gemini
 - **3 call modes**: `chat()`, `chatStream()`, `chatWithTools()`
 - Custom base URL support for OpenAI-compatible APIs (auto-strips `/chat/completions` suffix)
@@ -300,6 +327,7 @@ The `ProviderFactory` selects the provider based on user preferences, decrypts t
 - Reasoning model preamble stripping (`<think>`, `<reasoning>`, etc.)
 
 ### Generation Pipeline (L1-L4)
+
 - **L1**: Tree generation from extracted text (max 60K chars, 15K per file)
 - **L2**: Concurrent chunk generation (3 subtrees in parallel, 28K chars per subtree)
 - **L3**: Importance-based compression (High-Frequency → Important → Awareness)
@@ -309,12 +337,14 @@ The `ProviderFactory` selects the provider based on user preferences, decrypts t
 - Crash recovery: stuck courses auto-recovered on server restart
 
 ### Incremental Merge
+
 - 6-stage pipeline for adding new files without full regeneration
 - Tree diff computation (old vs. new)
 - Merge operations: create, update, delete, move
 - Validation and rollback on failure
 
 ### Chunk Chat (AI Editing)
+
 - Router → Retriever → Generator pipeline
 - Intent classification (expand, compress, rewrite, deduplicate, translate, etc.)
 - Duplicate detection across all course chunks
@@ -322,6 +352,7 @@ The `ProviderFactory` selects the provider based on user preferences, decrypts t
 - Streaming response with suggestion parsing
 
 ### Layout Engine
+
 - Pure algorithmic (no LLM): binary search for optimal column height
 - Multi-column support (1-4 columns auto-detected from page width and font size)
 - Container grouping by parent tree node
@@ -329,29 +360,31 @@ The `ProviderFactory` selects the provider based on user preferences, decrypts t
 - Re-layout and optimize-layout endpoints
 
 ### Version Management
+
 - Auto-save on generation completion
 - Manual snapshots with label and description
 - Full tree + layout + chunks snapshot restore
 - Baseline marking for reference versions
 
 ### Export
+
 - HTML export with multi-column print CSS
 - PDF export via Puppeteer (lazy-loaded optional dependency)
 - Configurable page size and margins
 
 ### API Surface
 
-| Group | Endpoints |
-|-------|-----------|
-| Auth | `POST /register`, `POST /login`, `GET /me`, `PUT /api-keys`, `PUT /settings` |
-| Courses | `GET /`, `POST /`, `GET /:id`, `PUT /:id`, `DELETE /:id`, `POST /:id/files`, `DELETE /:id/files/:fileId` |
-| Generation | `POST /:id/generate`, `POST /:id/incremental-merge`, `POST /:id/cancel` |
-| Layout | `GET /:id/layout`, `PUT /:id/layout`, `POST /:id/relayout`, `POST /:id/optimize-layout` |
-| Tree | `GET /:id/content-tree`, `PUT /:id/content-tree` |
-| Chunks | `PATCH /:id/chunks/:nodeId`, `POST /:id/chunks/:nodeId/chat` |
-| Export | `GET /:id/export/html`, `GET /:id/export/pdf` |
-| Versions | `GET /:id/versions`, `POST /:id/versions`, `POST /:id/versions/:vid/restore`, `PUT /:id/versions/:vid/baseline`, `DELETE /:id/versions/:vid` |
-| Utility | `POST /:id/cmd-k`, `GET /:id/source-file/:fid`, `POST /:id/images`, `GET /health` |
+| Group      | Endpoints                                                                                                                                    |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth       | `POST /register`, `POST /login`, `GET /me`, `PUT /api-keys`, `PUT /settings`                                                                 |
+| Courses    | `GET /`, `POST /`, `GET /:id`, `PUT /:id`, `DELETE /:id`, `POST /:id/files`, `DELETE /:id/files/:fileId`                                     |
+| Generation | `POST /:id/generate`, `POST /:id/incremental-merge`, `POST /:id/cancel`                                                                      |
+| Layout     | `GET /:id/layout`, `PUT /:id/layout`, `POST /:id/relayout`, `POST /:id/optimize-layout`                                                      |
+| Tree       | `GET /:id/content-tree`, `PUT /:id/content-tree`                                                                                             |
+| Chunks     | `PATCH /:id/chunks/:nodeId`, `POST /:id/chunks/:nodeId/chat`                                                                                 |
+| Export     | `GET /:id/export/html`, `GET /:id/export/pdf`                                                                                                |
+| Versions   | `GET /:id/versions`, `POST /:id/versions`, `POST /:id/versions/:vid/restore`, `PUT /:id/versions/:vid/baseline`, `DELETE /:id/versions/:vid` |
+| Utility    | `POST /:id/cmd-k`, `GET /:id/source-file/:fid`, `POST /:id/images`, `GET /health`                                                            |
 
 ---
 
@@ -359,11 +392,11 @@ The `ProviderFactory` selects the provider based on user preferences, decrypts t
 
 ### Prerequisites
 
-| Tool | Localhost | Docker |
-|------|-----------|--------|
-| Node.js 18+ | Required | Not needed |
-| MongoDB 7+ | Required | Included in compose |
-| Docker & Docker Compose | Not needed | Required |
+| Tool                    | Localhost  | Docker              |
+| ----------------------- | ---------- | ------------------- |
+| Node.js 18+             | Required   | Not needed          |
+| MongoDB 7+              | Required   | Included in compose |
+| Docker & Docker Compose | Not needed | Required            |
 
 ### Option A — Localhost
 
@@ -441,11 +474,11 @@ cp .env.example .env
 docker compose up --build
 ```
 
-| Service | URL |
-|---------|-----|
+| Service  | URL                   |
+| -------- | --------------------- |
 | Frontend | http://localhost:5173 |
-| Backend | http://localhost:3001 |
-| MongoDB | localhost:27017 |
+| Backend  | http://localhost:3001 |
+| MongoDB  | localhost:27017       |
 
 Source file changes sync into the containers automatically via `docker compose watch`.
 
@@ -455,10 +488,10 @@ Source file changes sync into the containers automatically via `docker compose w
 docker compose -f docker-compose.prod.yml up --build
 ```
 
-| Service | URL |
-|---------|-----|
+| Service     | URL                        |
+| ----------- | -------------------------- |
 | App (Nginx) | http://localhost (port 80) |
-| Backend | http://localhost:3001 |
+| Backend     | http://localhost:3001      |
 
 #### Useful Docker Commands
 
@@ -504,12 +537,12 @@ studysheet/
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `JWT_SECRET` | — | Secret for signing JWTs (required) |
-| `ENCRYPTION_KEY` | — | Key for encrypting stored API keys (required, min 32 chars) |
-| `MONGODB_URI` | `mongodb://localhost:27017/studysheet` | MongoDB connection string |
-| `PORT` | `3001` | Backend server port |
-| `NODE_ENV` | `development` | `development` or `production` |
-| `CORS_ORIGIN` | `http://localhost:5173` | Allowed CORS origin |
-| `UPLOAD_DIR` | `uploads` | Directory for uploaded files |
+| Variable         | Default                                | Description                                                 |
+| ---------------- | -------------------------------------- | ----------------------------------------------------------- |
+| `JWT_SECRET`     | —                                      | Secret for signing JWTs (required)                          |
+| `ENCRYPTION_KEY` | —                                      | Key for encrypting stored API keys (required, min 32 chars) |
+| `MONGODB_URI`    | `mongodb://localhost:27017/studysheet` | MongoDB connection string                                   |
+| `PORT`           | `3001`                                 | Backend server port                                         |
+| `NODE_ENV`       | `development`                          | `development` or `production`                               |
+| `CORS_ORIGIN`    | `http://localhost:5173`                | Allowed CORS origin                                         |
+| `UPLOAD_DIR`     | `uploads`                              | Directory for uploaded files                                |
