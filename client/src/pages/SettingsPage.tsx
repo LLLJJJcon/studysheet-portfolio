@@ -28,9 +28,33 @@ export function SettingsPage() {
 
   const handleSaveKeys = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     setMessage('');
     setMessageType('');
+
+    // --- JavaScript Form Validation ---
+    if (openaiKey && openaiKey.length < 20) {
+      setMessage('Invalid OpenAI key format. Key seems too short.');
+      setMessageType('error');
+      return;
+    }
+    if (anthropicKey && anthropicKey.length < 20) {
+      setMessage('Invalid Anthropic key format. Key seems too short.');
+      setMessageType('error');
+      return;
+    }
+    if (geminiKey && geminiKey.length < 20) {
+      setMessage('Invalid Gemini key format. Key seems too short.');
+      setMessageType('error');
+      return;
+    }
+    const urlRegex = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
+    if (openaiBaseUrl && !urlRegex.test(openaiBaseUrl)) {
+      setMessage('Invalid OpenAI Base URL. Please enter a valid HTTP/HTTPS URL.');
+      setMessageType('error');
+      return;
+    }
+
+    setSaving(true);
     try {
       const update: { openai?: string | null; anthropic?: string | null; gemini?: string | null } = {};
       if (openaiKey) update.openai = openaiKey;
