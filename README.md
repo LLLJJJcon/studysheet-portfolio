@@ -2,6 +2,9 @@
 
 AI-powered exam cheatsheet generator. Upload course materials → AI builds an exam-point content tree → Adjust and generate a draggable, editable chunk layout → Export as PDF / HTML.
 
+## Demo Video
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/2wg5UHxdGtU/0.jpg)](https://www.youtube.com/watch?v=2wg5UHxdGtU)
+
 ## 1. Problem Statement
 
 ### The Problem
