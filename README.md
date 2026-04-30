@@ -30,6 +30,30 @@ University students preparing for closed-book or cheatsheet-allowed exams face a
 5. **Provider-agnostic LLM**: Supporting OpenAI, Anthropic, and Gemini (plus any OpenAI-compatible API) with a single abstraction.
 
 ## 2. Solution Architecture
+### Version Iteration Workflow (Wireframes)
+
+The two wireframes below illustrate the core interaction flow during version iteration, from AI content generation to final layout placement:
+
+#### Wireframe A (Initial Draft)
+![Wireframe A](images/wireframe-a.png)
+
+
+#### Wireframe B (Refined Draft)
+![Wireframe B](images/wireframe-b.png)
+
+
+#### Current UI (After Iteration)
+![Current UI](images/current-ui.png)
+
+### Workflow Description
+
+1. After logging in, create a course first, upload materials (PDF/PPT/Word/images/text), then set page size and page count; the system calculates the maximum available word count, and the user clicks `Start Generation` to confirm.
+2. In the AI generation stage, the system first builds a global content tree, then generates branch chunks in parallel; if the total word count exceeds the limit, it compresses content in the order `Awareness → Important → High-Frequency`, and then produces the initial layout.
+3. The editing stage uses synchronized left-right panels: on the left, users can add/remove nodes, adjust importance, and edit text; on the right, the canvas supports drag, resize, double-click edit, and source tracing, with bidirectional sync of both content and highlight state.
+4. Content editing supports both manual editing and AI-assisted editing.
+5. After manual/AI adjustments, the right-side layout automatically adapts based on the structure and content of the left content tree.
+6. Users can add new materials, and the new content is merged into the existing knowledge structure.
+7. Export as `PDF` when finished.
 
 ### Information Architecture
 
