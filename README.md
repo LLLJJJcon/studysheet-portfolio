@@ -1,5 +1,15 @@
 # StudySheet
 
+## Portfolio provenance & individual contributions
+
+This is Liang Jing's ([@LLLJJJcon](https://github.com/LLLJJJcon)) portfolio copy of **StudySheet**, developed collaboratively by **Tay Dinghan, Luo Tian, and Liang Jing** for NUS IT5007, Group 21. The original team repository is [IT5007-2520/course-project-group-21](https://github.com/IT5007-2520/course-project-group-21) (private; access required).
+
+Published with team permission. The original team attribution, commit authors, commit dates, and Git history are preserved. Liang Jing participated as a core team member; this repository presents a team project and his individual implementation contributions.
+
+**For reviewers:** [Watch the product demo](https://www.youtube.com/watch?v=2wg5UHxdGtU), explore the screenshots below, and review [Liang Jing's contribution evidence](PORTFOLIO.md). The demo is a recorded walkthrough; this repository does not provide a hosted application endpoint.
+
+---
+
 AI-powered exam cheatsheet generator. Upload course materials → AI builds an exam-point content tree → Adjust and generate a draggable, editable chunk layout → Export as PDF / HTML.
 
 ## Demo Video

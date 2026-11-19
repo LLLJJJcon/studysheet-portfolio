@@ -1,0 +1,15 @@
+{
+  "source": "IT5007-2520/course-project-group-21",
+  "source_main": "7434455d24b5496636d369e5f17436ce1f264cf1",
+  "source_feedback": "c889e4bf20095d8df7d9ddb2ddf6d37d901a2c30",
+  "copied_on": "2026-11-19",
+  "preserve_authors_and_history": true,
+  "source_pull_refs": [
+    "refs/pull/1/head",
+    "refs/pull/1/merge"
+  ],
+  "pull_refs_note": "GitHub-managed refs are retained in the local complete bundle; GitHub creates its own PR refs, so these are not recreated as native PRs.",
+  "source_tags": [],
+  "source_releases": [],
+  "source_wiki": false
+}
